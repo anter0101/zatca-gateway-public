@@ -228,6 +228,8 @@ JSON the SDK builds:
 
 ## 6. CSR configuration
 
+Dashboard form (camelCase → `csr.*`), constraints, and v1 locked fields: [CSR-FORM.md](CSR-FORM.md).
+
 Template: [Data/Input/csr-config-template.properties](Data/Input/csr-config-template.properties)  
 Working example: [Data/Input/csr-config-example-EN.properties](Data/Input/csr-config-example-EN.properties)
 

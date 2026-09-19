@@ -161,7 +161,7 @@ Vendor portal (not a public marketing site in v1):
 
 1. **Auth** — login, invite team
 2. **Overview** — tax payer count, invoice success/fail, ZATCA env
-3. **Tax payers** — list, create, edit, onboarding wizard (CSR fields, OTP, CSID/PCSID status, devices)
+3. **Tax payers** — list, create, edit, onboarding wizard (CSR fields, OTP, CSID/PCSID status, devices). CSR form fields and rules: [CSR-FORM.md](CSR-FORM.md).
 4. **Systems & keys** — systems, create/revoke/rotate keys, scopes, last used, test vs live
 5. **Invoices** — search, status, ZATCA errors, XML/hash (no private keys)
 6. **Developers** — webhook URL, recent deliveries, API docs snippet
