@@ -33,7 +33,7 @@ flowchart LR
 
 | Phase | File | Delivers |
 | --- | --- | --- |
-| 0 | [phase-zero.md](phase-zero.md) | Docker Compose: Nest, Next, Postgres, Redis, Java sidecar, nginx + env |
+| 0 | [phase-zero.md](phase-zero.md) | `deployment/` Compose: Nest, Next, Postgres, Redis, Java sidecar, nginx + env |
 | 1 | [phase-one.md](phase-one.md) | Postgres ERD (single column source of truth) |
 | 2 | [phase-two.md](phase-two.md) | Admin JWT: vendors, API keys, tax-payer identity |
 | 3 | [phase-three.md](phase-three.md) | `.env` + **ZatcaClient** (swagger contracts) + sidecar sandbox + onboard (CSR → OTP → CSID → 6 samples → PCSID) |

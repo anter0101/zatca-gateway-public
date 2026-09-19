@@ -1,9 +1,12 @@
 node_modules
 dist
-coverage
 .git
+.gitignore
+*.md
 .env
 .env.*
-*.log
-Dockerfile
-docker-compose*.yml
+!.env.example
+coverage
+.husky
+docker-compose.yml
+nginx.conf

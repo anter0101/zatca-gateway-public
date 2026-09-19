@@ -1,0 +1,125 @@
+# ZATCA Gateway — local / compose stack
+# Run from this directory:
+#   cp .env.example .env
+#   docker compose up --build
+
+name: zatca-gateway
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zatca_gateway}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  sidecar:
+    build:
+      context: ..
+      dockerfile: sidecar/Dockerfile
+    environment:
+      SIDECAR_PORT: ${SIDECAR_PORT:-8090}
+      FATOORA_HOME: ${FATOORA_HOME:-/opt/zatca-sdk}
+      SIDECAR_MAX_CONCURRENT: ${SIDECAR_MAX_CONCURRENT:-8}
+    expose:
+      - "${SIDECAR_PORT:-8090}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-8080}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-change-me}
+      DATABASE_NAME: ${DATABASE_NAME:-zatca_gateway}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_LOGGING: ${DATABASE_LOGGING:-false}
+      DATABASE_SYNCHRONIZE: ${DATABASE_SYNCHRONIZE:-false}
+      DATABASE_MIGRATIONS_RUN: ${DATABASE_MIGRATIONS_RUN:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      SIDECAR_URL: http://sidecar:${SIDECAR_PORT:-8090}
+      SIDECAR_MAX_CONCURRENT: ${SIDECAR_MAX_CONCURRENT:-8}
+      ZATCA_ENV: ${ZATCA_ENV:-simulation}
+      ZATCA_SIMULATION_BASE_URL: ${ZATCA_SIMULATION_BASE_URL:-https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation}
+      ZATCA_PRODUCTION_BASE_URL: ${ZATCA_PRODUCTION_BASE_URL:-https://gw-fatoora.zatca.gov.sa/e-invoicing/core}
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sidecar:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-nextauth}
+    environment:
+      NODE_ENV: production
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-nextauth}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost}
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

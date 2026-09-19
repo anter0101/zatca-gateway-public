@@ -1,7 +1,7 @@
 # Phase 0 — Docker Compose stack
 
 **Depends on:** nothing.  
-**Delivers:** Root compose for Nest, Next, Postgres, Redis, Java sidecar, nginx + Dockerfiles + env contract.  
+**Delivers:** Compose stack under [`deployment/`](../deployment/) for Nest, Next, Postgres, Redis, Java sidecar, nginx + Dockerfiles + env contract.  
 **Next:** [phase-one.md](phase-one.md) — Backend ERD.
 
 Local/dev runtime only. No product APIs, no Fatoora calls, no schema migrations in this phase.
@@ -10,11 +10,7 @@ Local/dev runtime only. No product APIs, no Fatoora calls, no schema migrations 
 
 Later phases assume services can talk to each other. Phase 0 freezes the topology and env names so Phase 1+ code targets real hostnames (`postgres`, `redis`, `sidecar`) instead of reinventing Docker mid-feature.
 
-Existing pieces to absorb or replace:
-
-- [`backend/Dockerfile`](../backend/Dockerfile) — keep / refine
-- [`backend/docker-compose.yml`](../backend/docker-compose.yml) — retire; root compose becomes source of truth
-- [`backend/nginx.conf`](../backend/nginx.conf) — retire; use root [`nginx/nginx.conf`](../nginx/nginx.conf)
+Compose / nginx / env live in **`deployment/`** — not inside `backend/`.
 
 ## Architecture
 
@@ -32,9 +28,9 @@ flowchart LR
 | Service | Build / image | Listen | Published | Role |
 | --- | --- | --- | --- | --- |
 | `nginx` | `nginx:1.27-alpine` | `80` | `${NGINX_PORT:-80}` | Public edge |
-| `frontend` | `frontend/Dockerfile` | `3000` | none | Next.js admin UI |
-| `backend` | `backend/Dockerfile` | `8080` | none | Nest API |
-| `sidecar` | `sidecar/Dockerfile` | `8090` | none | Java 11–14 + `sdk/` (fatoora) |
+| `frontend` | [`frontend/Dockerfile`](../frontend/Dockerfile) | `3000` | none | Next.js admin UI |
+| `backend` | [`backend/Dockerfile`](../backend/Dockerfile) | `8080` | none | Nest API |
+| `sidecar` | [`sidecar/Dockerfile`](../sidecar/Dockerfile) | `8090` | none | Java 11–14 + `sdk/` (fatoora) |
 | `postgres` | `postgres:16-alpine` | `5432` | `${POSTGRES_PORT:-5432}` | System of record |
 | `redis` | `redis:7-alpine` | `6379` | `${REDIS_PORT:-6379}` | BullMQ + rate limits (Phases 3–5) |
 
@@ -44,15 +40,18 @@ Sidecar is **never** on nginx. Backend calls `SIDECAR_URL=http://sidecar:8090`.
 
 Not for Phase 0 app logic. Included so the stack matches the roadmap: BullMQ onboard/invoice workers (Phases 3–4) and per-key rate limits (Phase 5). Postgres remains the source of truth.
 
-## Files this phase creates
+## Files
 
 | Path | Purpose |
 | --- | --- |
-| [`docker-compose.yml`](../docker-compose.yml) | Root compose (all services) |
-| [`.env.example`](../.env.example) | Single env template for compose |
-| [`nginx/nginx.conf`](../nginx/nginx.conf) | Edge routing |
+| [`deployment/docker-compose.yml`](../deployment/docker-compose.yml) | All services |
+| [`deployment/.env.example`](../deployment/.env.example) | Env contract (copy to `deployment/.env`) |
+| [`deployment/nginx.conf`](../deployment/nginx.conf) | Edge routing |
+| [`deployment/README.md`](../deployment/README.md) | How to run |
 | [`frontend/Dockerfile`](../frontend/Dockerfile) | Next.js image |
+| [`backend/Dockerfile`](../backend/Dockerfile) | Nest image |
 | [`sidecar/Dockerfile`](../sidecar/Dockerfile) | Temurin 11 + `sdk/` + health stub |
+| [`sidecar/SidecarServer.java`](../sidecar/SidecarServer.java) | `GET /health`, `POST /internal/*` → 501 |
 | [`sidecar/README.md`](../sidecar/README.md) | Sidecar notes; real ops in Phase 3 |
 
 Align [`backend/.env.example`](../backend/.env.example) and [`frontend/.env.example`](../frontend/.env.example) with the same keys for non-Docker local runs.
@@ -74,16 +73,16 @@ Browser must call the gateway through nginx (`PUBLIC_URL`), not `backend:8080` d
 ## Sidecar (Phase 0 baseline)
 
 - Image: Eclipse Temurin **11** JRE (SDK requires Java 11–14)
-- Bake or bind-mount [`sdk/`](../sdk/) at `/opt/zatca-sdk` (`FATOORA_HOME`)
-- Install `jq` if launchers need it; prefer `java -jar` + `SDK_CONFIG` (see [phase-three.md](phase-three.md))
-- Phase 0 HTTP surface only:
+- SDK baked at `/opt/zatca-sdk` (`FATOORA_HOME`)
+- Prefer `java -jar` + `SDK_CONFIG` for fatoora (see [phase-three.md](phase-three.md))
+- Phase 0 HTTP surface:
   - `GET /health` → `200`
   - `POST /internal/*` → `501` stubs until Phase 3
 - Real CSR / sign / validate / invoice-request + per-job sandbox = **Phase 3**
 - Do not publish `8090` to the host by default
 - Do not use SDK dummy `cert.pem` / keys as live tax payer secrets
 
-## Env contract (root `.env.example`)
+## Env contract (`deployment/.env.example`)
 
 ```env
 # Edge
@@ -129,13 +128,14 @@ SIDECAR_PORT=8090
 FATOORA_HOME=/opt/zatca-sdk
 ```
 
-Compose injects these per service. Never commit a real `.env` with production secrets.
+Never commit a real `deployment/.env` with production secrets.
 
 Fatoora URL + `ZatcaClient` behavior: [phase-three.md](phase-three.md). Swagger PDFs: [sdk/fatoora-swagger/](../sdk/fatoora-swagger/).
 
-## How to run (when implemented)
+## How to run
 
 ```bash
+cd deployment
 cp .env.example .env
 docker compose up --build
 ```
