@@ -1,17 +1,17 @@
 # Phase 4 — Live invoices
 
-**Depends on:** [phase-three.md](phase-three.md) (sidecar sandbox, onboarded PCSID).  
-**Delivers:** UBL generator + `POST /v1/invoices` (clearance / reporting).  
+**Depends on:** [phase-three.md](phase-three.md) (`.env` + `ZatcaClient`, sidecar sandbox, onboarded PCSID).  
+**Delivers:** UBL generator + `POST /v1/invoices` via `ZatcaClient.invoices.clear` / `report`.  
 **Next:** [phase-five.md](phase-five.md) — Harden.
 
-Build UBL 2.1 from vendor JSON using the ZATCA Data Dictionary and SDK samples. Vendor sends **business data**; gateway computes totals, stamps seller, sets ICV/PIH, sidecar signs + SDK `-validate`, then Fatoora.
+Build UBL 2.1 by **stamping** vendor JSON onto SDK sample XMLs (fixture-driven). Vendor sends **business data**; gateway sets seller/ICV/PIH/totals, sidecar signs + SDK `-validate`, then Fatoora through the same **ZatcaClient** as onboard (bases from Phase 3 `.env`). Contracts: [sdk/fatoora-swagger/](../sdk/fatoora-swagger/).
 
 ## This phase
 
 - Invoice table + `POST /v1/invoices` (worker + poll)
-- Generator for the **six** live document types
+- Fixture-driven generator for the **six** live document types (SDK samples as templates)
 - Discounts, VAT %, credit/debit (returns), standard vs simplified
-- Fatoora clearance / reporting with correct headers and JSON body
+- Fatoora clearance / reporting via `ZatcaClient.invoices` (`Clearance-Status` headers)
 - On reject: **do not** advance PIH; store signed + cleared XML when successful
 
 **Not this phase:** export, self-billing, third-party, summary, nominal, B2G, prepayment `386`, non-SAR.
@@ -24,11 +24,12 @@ flowchart TB
   Queue --> Worker
   Worker --> Gen[UBL_generator]
   Worker --> Sidecar
-  Worker -->|standard clearance| Fatoora
-  Worker -->|simplified reporting| Fatoora
+  Worker --> Client[ZatcaClient]
+  Client -->|clear| Fatoora
+  Client -->|report| Fatoora
 ```
 
-Auth: `Authorization: Bearer sk_test_...` / `sk_live_...`. Tax payer must be `onboarded` (PCSID). Seller address fields required. Test keys → simulation only. Header `Idempotency-Key` required.
+Auth: `Authorization: Bearer sk_test_...` / `sk_live_...`. Tax payer must be `onboarded` (PCSID). Seller address fields required. Test keys → simulation only. Header `Idempotency-Key` required. Env resolution: see [phase-three.md](phase-three.md) (`.env` + key prefix).
 
 ---
 
@@ -140,50 +141,60 @@ Credit/debit required:
 
 ---
 
-## Generator rules
+## Generator (fixture-driven)
 
-Dictionary: **M** / **O** / **C** / **NA**. Nest builds XML from Phase 4 rules; local gate is SDK `-validate` only (Phase 3).
+Do **not** reinvent UBL from the dictionary spreadsheet. Stamp business data onto the six SDK sample structures under [`sdk/Data/Samples/`](../sdk/Data/Samples/).
 
-**Always**
+1. Pick sample XML by subtype + type (standard/simplified × invoice/credit/debit)
+2. Stamp seller from tax payer, buyer/lines/dates/discounts from vendor JSON, ICV + PIH from locked tax payer row
+3. Gateway computes tax totals (group by category + percent); `PayableAmount` = inclusive − prepaid (v1 prepaid `0`); amounts 2 decimals; `ChargeIndicator` false for allowances
+4. Credit/debit: `BillingReference` + `InstructionNote` + `originalInvoiceId` (same tax payer)
+5. Output unsigned XML (no UBLExtensions / QR value) → sidecar `-sign` / `-validate` / `-invoiceRequest`
 
-- `ProfileID` = `reporting:1.0`
-- `ID`, `UUID` (KSA-1), `IssueDate`, `IssueTime` `hh:mm:ss` (KSA-25)
-- `InvoiceTypeCode` + `@name` 7 chars
-- `DocumentCurrencyCode` + `TaxCurrencyCode` (usually `SAR`, BR-KSA-68)
-- ICV monotonic (KSA-16); PIH previous hash (KSA-13); first PIH from [Data/PIH/pih.txt](../sdk/Data/PIH/pih.txt)
-- QR filled by SDK (KSA-14); stamp on `-sign` (KSA-15)
-- Seller: VAT, name, full address, one ID scheme (BR-KSA-08/09)
-- Two `TaxTotal` blocks; `LegalMonetaryTotal` with `PayableAmount`
-- ≥1 line; amounts 2 decimals (BR-KSA-F-04); UBL element order matches samples
+**When coding — fixture tests first:** golden unsigned XML per type → sidecar `-validate` PASS → then Fatoora. Local gate is SDK only (no Nest dictionary re-pass).
 
-**Standard only:** buyer name + full address; line `TaxAmount` + `RoundingAmount` (**M**).
-
-**Credit / debit only:** `BillingReference` (BR-KSA-56); `InstructionNote` (BR-KSA-17); original same tax payer.
-
-**Discounts (C):** document / line / price allowances with `ChargeIndicator=false`.
-
-**Tax math:** gateway computes; group by (category, percent); `PayableAmount` = inclusive − prepaid (v1 prepaid 0).
-
-**Simplified QR:** tags 1–8 including signature (07) and public key (08). Confirm CLI flag `-qr` vs `-invoicewithqr` via sidecar `-help` after install.
+Stamp must keep: `ProfileID` `reporting:1.0`, UUID (KSA-1), ICV/PIH chain, type code + KSA-2 `@name`, seller VAT + address, UBL element order matching samples.
 
 ---
 
-## Fatoora submit
+## Fatoora submit (`ZatcaClient`)
 
-SDK builds:
+Reuse Phase 3 client and bases ([sdk/fatoora-swagger/](../sdk/fatoora-swagger/)). Do not hardcode URLs.
 
-```json
-{ "invoiceHash": "<hash>", "uuid": "<invoice UUID>", "invoice": "<base64 XML>" }
+```ts
+const client = ZatcaClient.create(taxPayer.zatca_environment);
+// body from sidecar -invoiceRequest:
+// { invoiceHash, uuid, invoice }
 ```
 
-| Subtype | Path | Notes |
-| --- | --- | --- |
-| Standard | `POST /invoices/clearance/single` | Must clear **before** issuing to customer. Send `Clearance-Status` header as required by Fatoora |
-| Simplified | `POST /invoices/reporting/single` | Report within **24 hours** (BR-KSA-98) |
+Shared: `Accept-Version: V2`, Basic **PCSID** (`production_csid` + `production_csid_secret`). Env must match `tax_payers.zatca_environment` and key prefix.
 
-Auth: Basic from PCSID (binary security token + secret), not our JWT. Environment must match `tax_payers.zatca_environment` and key prefix.
+### `invoices.clear` (standard)
 
-Errors: Stripe-like `{ error: { type, code, message, zatca_code } }`.
+Source: [clearance.pdf](../sdk/fatoora-swagger/clearance.pdf).
+
+- `POST {base}/invoices/clearance/single`
+- Headers: **`Clearance-Status: 1`** (required; `0` = clearance disabled)
+- Body: `{ invoiceHash, uuid, invoice }`
+- **200:** `{ validationResults, clearanceStatus: "CLEARED", clearedInvoice: "<base64>" }` → decode/store `cleared_xml`
+- Must clear **before** issuing to customer
+
+### `invoices.report` (simplified)
+
+Source: [reporting.pdf](../sdk/fatoora-swagger/reporting.pdf).
+
+- `POST {base}/invoices/reporting/single`
+- Headers: **`Clearance-Status: 0`** (required on reporting swagger)
+- Body: same `{ invoiceHash, uuid, invoice }`
+- **200 / 202:** `{ validationResults, reportingStatus: "REPORTED" }` (202 = accepted with warnings)
+- Report within **24 hours** (BR-KSA-98)
+
+| Subtype | Call |
+| --- | --- |
+| Standard | `client.invoices.clear(body)` |
+| Simplified | `client.invoices.report(body)` |
+
+Errors: Stripe-like `{ error: { type, code, message, zatca_code } }` from `validationResults.errorMessages`.
 
 ---
 
@@ -193,7 +204,7 @@ Errors: Stripe-like `{ error: { type, code, message, zatca_code } }`.
 2. Lock tax payer; assign UUID, ICV, PIH
 3. Generate unsigned XML (no UBLExtensions, no QR value)
 4. Sidecar sign / validate / invoice-request (sandbox)
-5. Standard → clearance; simplified → reporting
+5. `ZatcaClient.create(env)` → standard `clear()` / simplified `report()`
 6. **On success:** save hash as next PIH; store `unsigned_xml`, `signed_xml`, `cleared_xml` (if any), QR; status `cleared` or `reported`
 7. **On ZATCA reject or SDK NOT PASS:** do **not** advance PIH; status `rejected` / `failed`
 

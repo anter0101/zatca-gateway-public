@@ -143,7 +143,7 @@ Identity only — CSR form fields from [CSR-FORM.md](../sdk/CSR-FORM.md) plus se
 
 Server sets `country = SA`. Create sets `status = draft`. 409 on duplicate VAT for that vendor.
 
-Do **not** accept or return: `csrConfig`, `privateKeyEncrypted`, `csrPem`, `complianceCsid`, `productionCsid`, `icv`, `lastPih`, onboard progress secrets.
+Do **not** accept or return: `csrConfig`, `privateKeyEncrypted`, `csrPem`, `complianceRequestId`, `complianceCsid`, `complianceCsidSecret`, `productionCsid`, `productionCsidSecret`, `icv`, `lastPih`, onboard progress secrets.
 
 ---
 

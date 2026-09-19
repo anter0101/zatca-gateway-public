@@ -1,6 +1,6 @@
 # ZATCA Gateway — delivery roadmap
 
-Straight build order for the tax invoicing gateway. Detail lives in each phase file. Product overview: [sdk/ZATCA-SAAS-GATEWAY.md](../sdk/ZATCA-SAAS-GATEWAY.md). SDK reference: [sdk/ZATCA-SDK-STUDY.md](../sdk/ZATCA-SDK-STUDY.md). CSR form: [sdk/CSR-FORM.md](../sdk/CSR-FORM.md).
+Straight build order for the tax invoicing gateway. Detail lives in each phase file. Product overview: [sdk/ZATCA-SAAS-GATEWAY.md](../sdk/ZATCA-SAAS-GATEWAY.md). SDK reference: [sdk/ZATCA-SDK-STUDY.md](../sdk/ZATCA-SDK-STUDY.md). CSR form: [sdk/CSR-FORM.md](../sdk/CSR-FORM.md). Fatoora HTTP swagger (any env base): [sdk/fatoora-swagger/](../sdk/fatoora-swagger/).
 
 ## Stack
 
@@ -34,8 +34,8 @@ flowchart LR
 | --- | --- | --- |
 | 1 | [phase-one.md](phase-one.md) | Postgres ERD (single column source of truth) |
 | 2 | [phase-two.md](phase-two.md) | Admin JWT: vendors, API keys, tax-payer identity |
-| 3 | [phase-three.md](phase-three.md) | Java sidecar **with per-job sandbox** + vendor onboard (CSR → OTP → CSID → 6 samples → PCSID) |
-| 4 | [phase-four.md](phase-four.md) | Live UBL generator + clearance / reporting |
+| 3 | [phase-three.md](phase-three.md) | `.env` + **ZatcaClient** (swagger contracts) + sidecar sandbox + onboard (CSR → OTP → CSID → 6 samples → PCSID) |
+| 4 | [phase-four.md](phase-four.md) | Fixture-driven UBL + clearance / reporting |
 | 5 | [phase-five.md](phase-five.md) | Webhooks, rate limits, audit, key rotate, admin dashboard |
 
 Sandbox + env isolation is **Phase 3**, not after invoices — the JAR is single-folder and onboard already needs it.

@@ -151,7 +151,7 @@ Seller identity + SDK/onboard state. Unique `(vendor_id, vat_number)`.
 | `invoice_type` | enum | no | `both` \| `standard` \| `simplified`. Default `both` → CSR bitmap `1100` / `1000` / `0100` |
 | `country` | varchar(2) | no | Always `SA` |
 | `status` | enum | no | `draft` \| `onboarded` \| `suspended`. Default `draft` |
-| `zatca_environment` | enum | yes | `simulation` \| `developer` \| `production`. Set at CSR time; later calls must match |
+| `zatca_environment` | enum | yes | `simulation` \| `production`. Set at CSR time; later calls must match. Developer-portal deferred |
 
 ### Seller address (live UBL — dictionary **M**; Wasel is not enough)
 
@@ -172,8 +172,11 @@ Seller identity + SDK/onboard state. Unique `(vendor_id, vat_number)`.
 | `csr_config` | jsonb | yes | Snapshot of `csr.*` for the sidecar |
 | `private_key_encrypted` | text | yes | EC secp256k1. Encrypted at rest |
 | `csr_pem` | text | yes | |
-| `compliance_csid` | text | yes | Encrypted |
-| `production_csid` | text | yes | Encrypted (PCSID) |
+| `compliance_request_id` | varchar | yes | From compliance CSID `requestID` (string). Needed for PCSID |
+| `compliance_csid` | text | yes | Encrypted `binarySecurityToken` (compliance) |
+| `compliance_csid_secret` | text | yes | Encrypted `secret` for compliance Basic auth |
+| `production_csid` | text | yes | Encrypted `binarySecurityToken` (PCSID) |
+| `production_csid_secret` | text | yes | Encrypted `secret` for production Basic auth |
 | `icv` | bigint | no | Invoice counter. Default `0` |
 | `last_pih` | varchar | yes | Previous invoice hash. First invoice uses [Data/PIH/pih.txt](../sdk/Data/PIH/pih.txt) |
 
