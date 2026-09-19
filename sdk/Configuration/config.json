@@ -1,0 +1,10 @@
+{
+  "xsdPath": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/Schemas/xsds/UBL2.1/xsd/maindoc/UBL-Invoice-2.1.xsd",
+  "enSchematron": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/Rules/schematrons/CEN-EN16931-UBL.xsl",
+  "zatcaSchematron": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/Rules/schematrons/20210819_ZATCA_E-invoice_Validation_Rules.xsl",
+  "certPath": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/Certificates/cert.pem",
+  "privateKeyPath": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/Certificates/ec-secp256k1-priv-key.pem",
+  "pihPath": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/PIH/pih.txt",
+  "inputPath": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Data/Input",
+  "usagePathFile": "/Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8/Configuration/usage.txt"
+}
