@@ -1,0 +1,82 @@
+{
+  "title": "Tax payers",
+  "description": "Manage tax payer identity under a selected system owner.",
+  "add-new": "Add tax payer",
+  "select-owner": "Select system owner",
+  "search-placeholder": "Search by name, VAT, or branch...",
+  "filter-status": "Status",
+  "status-filter": {
+    "all": "All statuses",
+    "draft": "Draft",
+    "onboarded": "Onboarded",
+    "suspended": "Suspended"
+  },
+  "invoice-type": {
+    "both": "Both",
+    "standard": "Standard",
+    "simplified": "Simplified"
+  },
+  "table": {
+    "count": "{count} tax payers",
+    "empty": "No tax payers found for this owner.",
+    "select-owner-first": "Select a system owner to view tax payers.",
+    "columns": {
+      "legal-name": "Legal name",
+      "vat": "VAT number",
+      "branch": "Branch",
+      "invoice-type": "Invoice type",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "draft": "Draft",
+      "onboarded": "Onboarded",
+      "suspended": "Suspended"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
+  "form": {
+    "create-title": "Create tax payer",
+    "edit-title": "Edit tax payer",
+    "legal-name": "Legal name",
+    "vat-number": "VAT number",
+    "vat-placeholder": "15 digits starting and ending with 3",
+    "organization-unit": "Organization unit / branch",
+    "location-address": "Location address (Wasel)",
+    "location-placeholder": "e.g. RRRD2929",
+    "industry": "Industry / business category",
+    "invoice-type": "Invoice type",
+    "select-invoice-type": "Select invoice type",
+    "invoice-type-options": {
+      "both": "Both",
+      "standard": "Standard",
+      "simplified": "Simplified"
+    },
+    "status": "Status",
+    "select-status": "Select status",
+    "status-draft": "Draft",
+    "status-onboarded": "Onboarded",
+    "status-suspended": "Suspended",
+    "cancel": "Cancel",
+    "validation": {
+      "vat-invalid": "VAT must be 15 digits starting and ending with 3",
+      "legal-name-required": "Legal name is required",
+      "organization-unit-required": "Organization unit is required",
+      "location-address-invalid": "Location must be 4 letters + 4 digits (e.g. RRRD2929)",
+      "industry-required": "Industry is required",
+      "invoice-type-required": "Invoice type is required"
+    },
+    "actions": {
+      "error-missing-id": "Missing tax payer id",
+      "error-creating": "Failed to create tax payer",
+      "error-editing": "Failed to update tax payer"
+    }
+  },
+  "delete": {
+    "title": "Delete tax payer",
+    "message": "Are you sure you want to delete \"{name}\"?"
+  }
+}

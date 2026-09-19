@@ -1,0 +1,82 @@
+{
+  "title": "دافعو الضرائب",
+  "description": "إدارة هوية دافعي الضرائب تحت مالك النظام المحدد.",
+  "add-new": "إضافة دافع ضرائب",
+  "select-owner": "اختر مالك النظام",
+  "search-placeholder": "ابحث بالاسم أو الرقم الضريبي أو الفرع...",
+  "filter-status": "الحالة",
+  "status-filter": {
+    "all": "كل الحالات",
+    "draft": "مسودة",
+    "onboarded": "مكتمل التسجيل",
+    "suspended": "موقوف"
+  },
+  "invoice-type": {
+    "both": "كلاهما",
+    "standard": "قياسية",
+    "simplified": "مبسطة"
+  },
+  "table": {
+    "count": "{count} دافع ضريبة",
+    "empty": "لا يوجد دافعو ضرائب لهذا المالك.",
+    "select-owner-first": "اختر مالك نظام لعرض دافعي الضرائب.",
+    "columns": {
+      "legal-name": "الاسم القانوني",
+      "vat": "الرقم الضريبي",
+      "branch": "الفرع",
+      "invoice-type": "نوع الفاتورة",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "draft": "مسودة",
+      "onboarded": "مكتمل التسجيل",
+      "suspended": "موقوف"
+    },
+    "actions": {
+      "edit": "تعديل",
+      "delete": "حذف"
+    }
+  },
+  "form": {
+    "create-title": "إنشاء دافع ضريبة",
+    "edit-title": "تعديل دافع ضريبة",
+    "legal-name": "الاسم القانوني",
+    "vat-number": "الرقم الضريبي",
+    "vat-placeholder": "15 رقمًا يبدأ وينتهي بـ 3",
+    "organization-unit": "الوحدة التنظيمية / الفرع",
+    "location-address": "عنوان الموقع (واصل)",
+    "location-placeholder": "مثال: RRRD2929",
+    "industry": "النشاط / الفئة الصناعية",
+    "invoice-type": "نوع الفاتورة",
+    "select-invoice-type": "اختر نوع الفاتورة",
+    "invoice-type-options": {
+      "both": "كلاهما",
+      "standard": "قياسية",
+      "simplified": "مبسطة"
+    },
+    "status": "الحالة",
+    "select-status": "اختر الحالة",
+    "status-draft": "مسودة",
+    "status-onboarded": "مكتمل التسجيل",
+    "status-suspended": "موقوف",
+    "cancel": "إلغاء",
+    "validation": {
+      "vat-invalid": "يجب أن يكون الرقم الضريبي 15 رقمًا يبدأ وينتهي بـ 3",
+      "legal-name-required": "الاسم القانوني مطلوب",
+      "organization-unit-required": "الوحدة التنظيمية مطلوبة",
+      "location-address-invalid": "العنوان يجب أن يكون 4 أحرف + 4 أرقام (مثل RRRD2929)",
+      "industry-required": "النشاط مطلوب",
+      "invoice-type-required": "نوع الفاتورة مطلوب"
+    },
+    "actions": {
+      "error-missing-id": "معرف دافع الضريبة مفقود",
+      "error-creating": "فشل إنشاء دافع الضريبة",
+      "error-editing": "فشل تحديث دافع الضريبة"
+    }
+  },
+  "delete": {
+    "title": "حذف دافع الضريبة",
+    "message": "هل أنت متأكد من حذف \"{name}\"؟"
+  }
+}

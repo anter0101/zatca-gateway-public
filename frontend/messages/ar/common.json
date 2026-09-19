@@ -1,9 +1,18 @@
 {
   "name": "Zatca Gateway",
   "logout": "تسجيل الخروج",
+  "nav": {
+    "system-owners": "مالكو الأنظمة",
+    "tax-payers": "دافعو الضرائب"
+  },
   "message": {
     "on-success": "تم بنجاح",
     "on-error": "فشل"
+  },
+  "actions": {
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "processing": "جاري المعالجة..."
   },
   "pagination": {
     "previous": "السابق",

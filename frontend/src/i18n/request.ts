@@ -11,9 +11,16 @@ export default getRequestConfig(async ({ requestLocale }) => {
     : routing.defaultLocale;
 
   // Load messages with proper namespace structure
-  const [commonMessages, authMessages] = await Promise.all([
+  const [
+    commonMessages,
+    authMessages,
+    systemOwnersMessages,
+    taxPayersMessages,
+  ] = await Promise.all([
     import(`../../messages/${locale}/common.json`),
     import(`../../messages/${locale}/auth.json`),
+    import(`../../messages/${locale}/system-owners.json`),
+    import(`../../messages/${locale}/tax-payers.json`),
   ]);
 
   return {
@@ -21,6 +28,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
     messages: {
       common: commonMessages.default,
       auth: authMessages.default,
+      "system-owners": systemOwnersMessages.default,
+      "tax-payers": taxPayersMessages.default,
     },
   };
 });

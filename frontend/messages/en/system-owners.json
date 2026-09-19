@@ -1,0 +1,55 @@
+{
+  "title": "System owners",
+  "description": "Manage software vendors (ERP/POS tenants) on the platform.",
+  "add-new": "Add system owner",
+  "search-placeholder": "Search by name or slug...",
+  "filter-status": "Status",
+  "status-filter": {
+    "all": "All statuses",
+    "active": "Active",
+    "suspended": "Suspended"
+  },
+  "table": {
+    "count": "{count} system owners",
+    "empty": "No system owners found.",
+    "columns": {
+      "name": "Name",
+      "slug": "Slug",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
+  "form": {
+    "create-title": "Create system owner",
+    "edit-title": "Edit system owner",
+    "name": "Name",
+    "slug": "Slug",
+    "slug-placeholder": "Optional — generated from name if empty",
+    "status": "Status",
+    "select-status": "Select status",
+    "status-active": "Active",
+    "status-suspended": "Suspended",
+    "cancel": "Cancel",
+    "validation": {
+      "name-required": "Name is required",
+      "status-required": "Status is required"
+    },
+    "actions": {
+      "error-missing-id": "Missing system owner id",
+      "error-creating": "Failed to create system owner",
+      "error-editing": "Failed to update system owner"
+    }
+  },
+  "delete": {
+    "title": "Delete system owner",
+    "message": "Are you sure you want to delete \"{name}\"?"
+  }
+}

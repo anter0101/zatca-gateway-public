@@ -1,11 +1,19 @@
 {
   "name": "Zatca Gateway",
   "logout": "Logout",
+  "nav": {
+    "system-owners": "System owners",
+    "tax-payers": "Tax payers"
+  },
   "message": {
     "on-success": "On successful",
     "on-error": "Failed"
   },
-
+  "actions": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "processing": "Processing..."
+  },
   "pagination": {
     "previous": "Previous",
     "next": "Next",
