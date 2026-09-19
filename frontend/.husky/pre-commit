@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Expose both Node and pnpm to Git hooks
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+pnpm prettier --write .
+git add .
+pnpm lint || exit 1
+pnpm build || exit 1

@@ -1,0 +1,15 @@
+{
+  "name": "Zatca Gateway",
+  "logout": "تسجيل الخروج",
+  "message": {
+    "on-success": "تم بنجاح",
+    "on-error": "فشل"
+  },
+  "pagination": {
+    "previous": "السابق",
+    "next": "التالي",
+    "label": "التنقل بين الصفحات",
+    "go-to-previous": "الانتقال إلى الصفحة السابقة",
+    "go-to-next": "الانتقال إلى الصفحة التالية"
+  }
+}

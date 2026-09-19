@@ -1,0 +1,16 @@
+{
+  "name": "Zatca Gateway",
+  "logout": "Logout",
+  "message": {
+    "on-success": "On successful",
+    "on-error": "Failed"
+  },
+
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "label": "Pagination",
+    "go-to-previous": "Go to previous page",
+    "go-to-next": "Go to next page"
+  }
+}
