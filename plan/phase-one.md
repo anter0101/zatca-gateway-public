@@ -1,6 +1,6 @@
 # Phase 1 — Backend ERD
 
-**Depends on:** nothing (schema contract only).  
+**Depends on:** [phase-zero.md](phase-zero.md) (compose topology; optional if developing schema-only).  
 **Delivers:** Postgres tables and columns for the whole product.  
 **Next:** [phase-two.md](phase-two.md) — Admin APIs + migrations.
 
