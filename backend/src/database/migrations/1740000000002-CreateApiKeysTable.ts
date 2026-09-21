@@ -26,7 +26,11 @@ export class CreateApiKeysTable1740000000002 implements MigrationInterface {
           {
             name: 'prefix',
             type: 'enum',
-            enum: [ApiKeyPrefix.SK_TEST, ApiKeyPrefix.SK_LIVE],
+            enum: [
+              ApiKeyPrefix.SK_SANDBOX,
+              ApiKeyPrefix.SK_TEST,
+              ApiKeyPrefix.SK_LIVE,
+            ],
             enumName: 'api_key_prefix',
             isNullable: false,
           },

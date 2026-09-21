@@ -29,14 +29,23 @@ describe('api-key-util', () => {
     expect(prefixToEnvironment(ApiKeyPrefix.SK_TEST)).toBe(
       ZatcaEnvironment.SIMULATION,
     );
+    expect(prefixToEnvironment(ApiKeyPrefix.SK_SANDBOX)).toBe(
+      ZatcaEnvironment.DEVELOPER_PORTAL,
+    );
     expect(prefixToEnvironment(ApiKeyPrefix.SK_LIVE)).toBe(
       ZatcaEnvironment.PRODUCTION,
     );
     expect(scopeMatches(ApiKeyPrefix.SK_TEST, ZatcaEnvironment.SIMULATION)).toBe(
       true,
     );
+    expect(
+      scopeMatches(ApiKeyPrefix.SK_SANDBOX, ZatcaEnvironment.DEVELOPER_PORTAL),
+    ).toBe(true);
     expect(scopeMatches(ApiKeyPrefix.SK_TEST, ZatcaEnvironment.PRODUCTION)).toBe(
       false,
     );
+    expect(
+      scopeMatches(ApiKeyPrefix.SK_SANDBOX, ZatcaEnvironment.SIMULATION),
+    ).toBe(false);
   });
 });

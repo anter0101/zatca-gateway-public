@@ -1,0 +1,880 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-zatca-gateway-phase2-3",
+    "name": "ZATCA Gateway",
+    "description": "Admin JWT APIs (Phase 2) + vendor sk_* onboard APIs (Phase 3).\n\n**Flow**\n1. Auth → Login (saves `admin_token`)\n2. Vendors → Create (saves `vendor_id`)\n3. API Keys → Generate (saves `api_key` once)\n4. Tax Payers → Create (saves `tax_payer_id`)\n5. Onboard → Create CSR with `api_key`, then Start Onboard with OTP from Fatoora portal\n\nError envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"zatca_code\" } }`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.token) pm.environment.set('admin_token', body.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login",
+            "description": "Returns JWT for ADMIN routes. Saves `admin_token` to the environment."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@admin.com\",\n  \"password\": \"12345\"\n}"
+                },
+                "url": "{{base_url}}/api/auth/login"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@admin.com\",\n    \"username\": \"Administrator\",\n    \"role\": \"ADMIN\",\n    \"activated\": true\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+            },
+            {
+              "name": "400 validation",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{}" },
+                "url": "{{base_url}}/api/auth/login"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"type\": \"invalid_request\",\n    \"code\": \"validation_error\",\n    \"message\": \"email should not be empty\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Vendors (ADMIN)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Create vendor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.environment.set('vendor_id', String(body.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Antoor ERP\",\n  \"slug\": \"antoor-erp\",\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{base_url}}/api/vendors",
+            "description": "`slug` optional (slugified from name). `status` optional: `active` | `suspended`."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Antoor ERP\"\n}"
+                },
+                "url": "{{base_url}}/api/vendors"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Antoor ERP\",\n  \"slug\": \"antoor-erp\",\n  \"status\": \"active\",\n  \"createdAt\": \"2026-09-21T12:00:00.000Z\",\n  \"createdBy\": \"admin@admin.com\",\n  \"updatedAt\": null,\n  \"updatedBy\": \"admin@admin.com\",\n  \"deletedAt\": null,\n  \"deletedBy\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "List vendors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/vendors?page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vendors"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortField", "value": "id", "disabled": true },
+                { "key": "sortOrder", "value": "ASC", "disabled": true }
+              ]
+            },
+            "description": "Pagination headers: `X-Total-Count`, `Current-Page`, `Has-Next-Page`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/vendors?page=1&pageSize=10"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                { "key": "X-Total-Count", "value": "1" },
+                { "key": "Current-Page", "value": "1" },
+                { "key": "Has-Next-Page", "value": "false" }
+              ],
+              "body": "[\n  {\n    \"id\": 1,\n    \"name\": \"Antoor ERP\",\n    \"slug\": \"antoor-erp\",\n    \"status\": \"active\",\n    \"createdAt\": \"2026-09-21T12:00:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get vendor by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/vendors/1"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Antoor ERP\",\n  \"slug\": \"antoor-erp\",\n  \"status\": \"active\",\n  \"createdAt\": \"2026-09-21T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/vendors/999"
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"type\": \"not_found\",\n    \"code\": \"vendor_not_found\",\n    \"message\": \"Vendor not found\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update vendor",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Antoor ERP LLC\",\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Antoor ERP LLC\"\n}"
+                },
+                "url": "{{base_url}}/api/vendors/1"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Antoor ERP LLC\",\n  \"slug\": \"antoor-erp\",\n  \"status\": \"active\",\n  \"updatedAt\": \"2026-09-21T13:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete vendor (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}",
+            "description": "Soft-delete. `409 vendor_has_tax_payers` if tax payers still exist."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": "{{base_url}}/api/vendors/1"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": ""
+            },
+            {
+              "name": "409 Has tax payers",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": "{{base_url}}/api/vendors/1"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"type\": \"conflict\",\n    \"code\": \"vendor_has_tax_payers\",\n    \"message\": \"Cannot delete vendor that still has tax payers\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. API Keys (ADMIN)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Generate API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.environment.set('api_key_id', String(body.id));",
+                  "  if (body.key) pm.environment.set('api_key', body.key);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prefix\": \"sk_test_\",\n  \"expiresInDays\": 90\n}"
+            },
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}/api-keys",
+            "description": "Plaintext `key` returned **once**. Store it. Alternative body: `{ \"prefix\": \"sk_live_\", \"expiresAt\": \"2027-01-01T00:00:00.000Z\" }`."
+          },
+          "response": [
+            {
+              "name": "201 Created (key shown once)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prefix\": \"sk_test_\",\n  \"expiresInDays\": 90\n}"
+                },
+                "url": "{{base_url}}/api/vendors/1/api-keys"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 10,\n  \"key\": \"sk_test_a1b2c3d4e5f6fullSecretShownOnce\",\n  \"prefix\": \"sk_test_\",\n  \"last4\": \"Once\",\n  \"expiresAt\": \"2026-12-20T12:00:00.000Z\",\n  \"lastUsedAt\": null,\n  \"revokedAt\": null,\n  \"expired\": false,\n  \"createdAt\": \"2026-09-21T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 expires required",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prefix\": \"sk_test_\"\n}"
+                },
+                "url": "{{base_url}}/api/vendors/1/api-keys"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"type\": \"invalid_request\",\n    \"code\": \"expires_required\",\n    \"message\": \"Provide expiresAt or expiresInDays\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List API keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/vendors/{{vendor_id}}/api-keys?page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vendors", "{{vendor_id}}", "api-keys"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            },
+            "description": "Metadata only — never returns `key` or `keyHash`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/vendors/1/api-keys"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "[\n  {\n    \"id\": 10,\n    \"prefix\": \"sk_test_\",\n    \"last4\": \"Once\",\n    \"expiresAt\": \"2026-12-20T12:00:00.000Z\",\n    \"lastUsedAt\": null,\n    \"revokedAt\": null,\n    \"expired\": false,\n    \"createdAt\": \"2026-09-21T12:00:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Revoke API key",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}/api-keys/{{api_key_id}}/revoke",
+            "description": "Idempotent."
+          },
+          "response": [
+            {
+              "name": "200 Revoked",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{base_url}}/api/vendors/1/api-keys/10/revoke"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 10,\n  \"prefix\": \"sk_test_\",\n  \"last4\": \"Once\",\n  \"expiresAt\": \"2026-12-20T12:00:00.000Z\",\n  \"lastUsedAt\": null,\n  \"revokedAt\": \"2026-09-21T13:00:00.000Z\",\n  \"expired\": false,\n  \"createdAt\": \"2026-09-21T12:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Tax Payers (ADMIN)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Create tax payer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.environment.set('tax_payer_id', String(body.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vatNumber\": \"{{csr_organization_identifier}}\",\n  \"legalName\": \"{{csr_organization_name}}\",\n  \"organizationUnitName\": \"{{csr_organization_unit_name}}\",\n  \"locationAddress\": \"{{csr_location_address}}\",\n  \"industryBusinessCategory\": \"{{csr_industry_business_category}}\",\n  \"invoiceType\": \"{{invoice_type}}\",\n  \"streetName\": \"Salah Al Din\",\n  \"buildingNumber\": \"1234\",\n  \"district\": \"Al Murabba\",\n  \"city\": \"Riyadh\",\n  \"postalZone\": \"12624\",\n  \"sellerIdScheme\": \"CRN\",\n  \"sellerIdValue\": \"1010010000\"\n}"
+            },
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}/tax-payers",
+            "description": "Identity maps to CSR `csr.*` fields (env vars).\n\n| API field | CSR property | Example |\n| --- | --- | --- |\n| vatNumber | csr.organization.identifier | 399999999900003 |\n| legalName | csr.organization.name | Maximum Speed Tech Supply LTD |\n| organizationUnitName | csr.organization.unit.name | Riyadh Branch |\n| locationAddress | csr.location.address | RRRD2929 |\n| industryBusinessCategory | csr.industry.business.category | Supply activities |\n| invoiceType both | csr.invoice.type | 1100 |\n\nServer sets `country=SA` (`csr.country.name`), `status=draft`. On Create CSR, server also builds `csr.common.name` and `csr.serial.number`."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vatNumber\": \"399999999900003\",\n  \"legalName\": \"Maximum Speed Tech Supply LTD\",\n  \"organizationUnitName\": \"Riyadh Branch\",\n  \"locationAddress\": \"RRRD2929\",\n  \"industryBusinessCategory\": \"Supply activities\"\n}"
+                },
+                "url": "{{base_url}}/api/vendors/1/tax-payers"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 12,\n  \"vendorId\": 1,\n  \"vatNumber\": \"399999999900003\",\n  \"legalName\": \"Maximum Speed Tech Supply LTD\",\n  \"organizationUnitName\": \"Riyadh Branch\",\n  \"locationAddress\": \"RRRD2929\",\n  \"industryBusinessCategory\": \"Supply activities\",\n  \"invoiceType\": \"both\",\n  \"country\": \"SA\",\n  \"status\": \"draft\",\n  \"streetName\": null,\n  \"buildingNumber\": null,\n  \"district\": null,\n  \"city\": null,\n  \"postalZone\": null,\n  \"sellerIdScheme\": \"CRN\",\n  \"sellerIdValue\": null,\n  \"createdAt\": \"2026-09-21T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 vat_invalid",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vatNumber\": \"123\",\n  \"legalName\": \"Bad\",\n  \"organizationUnitName\": \"X\",\n  \"locationAddress\": \"RRRD2929\",\n  \"industryBusinessCategory\": \"Retail\"\n}"
+                },
+                "url": "{{base_url}}/api/vendors/1/tax-payers"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"type\": \"invalid_request\",\n    \"code\": \"validation_error\",\n    \"message\": \"vat_invalid\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List tax payers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/vendors/{{vendor_id}}/tax-payers?page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vendors", "{{vendor_id}}", "tax-payers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/vendors/1/tax-payers"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "[\n  {\n    \"id\": 12,\n    \"vendorId\": 1,\n    \"vatNumber\": \"399999999900003\",\n    \"legalName\": \"Maximum Speed Tech Supply LTD\",\n    \"status\": \"draft\",\n    \"country\": \"SA\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get tax payer by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}/tax-payers/{{tax_payer_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/vendors/1/tax-payers/12"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 12,\n  \"vendorId\": 1,\n  \"vatNumber\": \"399999999900003\",\n  \"legalName\": \"Maximum Speed Tech Supply LTD\",\n  \"organizationUnitName\": \"Riyadh Branch\",\n  \"locationAddress\": \"RRRD2929\",\n  \"industryBusinessCategory\": \"Supply activities\",\n  \"invoiceType\": \"both\",\n  \"country\": \"SA\",\n  \"status\": \"draft\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update tax payer",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalName\": \"Maximum Speed Tech Supply LLC\",\n  \"city\": \"Riyadh\"\n}"
+            },
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}/tax-payers/{{tax_payer_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"legalName\": \"Maximum Speed Tech Supply LLC\"\n}"
+                },
+                "url": "{{base_url}}/api/vendors/1/tax-payers/12"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 12,\n  \"legalName\": \"Maximum Speed Tech Supply LLC\",\n  \"status\": \"draft\",\n  \"country\": \"SA\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete tax payer (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/vendors/{{vendor_id}}/tax-payers/{{tax_payer_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": "{{base_url}}/api/vendors/1/tax-payers/12"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Onboard /v1 (sk_* or ADMIN JWT)",
+      "description": "Use `Authorization: Bearer {{api_key}}` (`sk_test_` / `sk_live_`). Admin JWT also works. Test keys → simulation only.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{api_key}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Create CSR",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{base_url}}/v1/taxpayers/{{tax_payer_id}}/onboard/csr",
+            "description": "Sync. Body is empty `{}` — Nest builds CSR properties from the tax payer identity (see env `csr_*`).\n\nExample `csr-config.properties` sent to sidecar:\n```\ncsr.common.name={{csr_common_name}}\ncsr.serial.number={{csr_serial_number}}\ncsr.organization.identifier={{csr_organization_identifier}}\ncsr.organization.unit.name={{csr_organization_unit_name}}\ncsr.organization.name={{csr_organization_name}}\ncsr.country.name={{csr_country_name}}\ncsr.invoice.type={{csr_invoice_type}}\ncsr.location.address={{csr_location_address}}\ncsr.industry.business.category={{csr_industry_business_category}}\n```\n\nReturns CSR PEM — register in Fatoora and copy OTP. Private key never returned.\n\nNote: live `commonName` / `serialNumber` are generated per request (`TST-{tin}-{vat}`, `1-Antoor|2-Gateway|3-{uuid}`); env values are the ZATCA sample reference."
+          },
+          "response": [
+            {
+              "name": "200 csr_created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{}" },
+                "url": "{{base_url}}/v1/taxpayers/12/onboard/csr"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"taxPayerId\": 12,\n  \"status\": \"csr_created\",\n  \"csr\": \"-----BEGIN CERTIFICATE REQUEST-----\\nMIIB...\\n-----END CERTIFICATE REQUEST-----\",\n  \"commonName\": \"TST-886431145-399999999900003\",\n  \"serialNumber\": \"1-TST|2-TST|3-ed22f1d8-e6a2-1118-9b58-d9a8f11e445f\"\n}"
+            },
+            {
+              "name": "CSR config properties (reference)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{}" },
+                "url": "{{base_url}}/v1/taxpayers/12/onboard/csr"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [{ "key": "Content-Type", "value": "text/plain" }],
+              "body": "csr.common.name=TST-886431145-399999999900003\ncsr.serial.number=1-TST|2-TST|3-ed22f1d8-e6a2-1118-9b58-d9a8f11e445f\ncsr.organization.identifier=399999999900003\ncsr.organization.unit.name=Riyadh Branch\ncsr.organization.name=Maximum Speed Tech Supply LTD\ncsr.country.name=SA\ncsr.invoice.type=1100\ncsr.location.address=RRRD2929\ncsr.industry.business.category=Supply activities"
+            }
+          ]
+        },
+        {
+          "name": "Start onboard",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{base_url}}/v1/taxpayers/{{tax_payer_id}}/onboard",
+            "description": "Async **202**. Enqueues BullMQ worker: compliance CSID → 6 samples → PCSID. Set `otp` from Fatoora after registering the CSR."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"otp\": \"123456\"\n}"
+                },
+                "url": "{{base_url}}/v1/taxpayers/12/onboard"
+              },
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"taxPayerId\": 12,\n  \"status\": \"queued\",\n  \"step\": \"csid\",\n  \"progress\": 0,\n  \"complianceDone\": 0,\n  \"complianceTotal\": 6,\n  \"error\": null\n}"
+            },
+            {
+              "name": "409 csr_required",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"otp\": \"123456\"\n}"
+                },
+                "url": "{{base_url}}/v1/taxpayers/12/onboard"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"type\": \"conflict\",\n    \"code\": \"csr_required\",\n    \"message\": \"Create CSR before starting onboard\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Poll onboard progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/v1/taxpayers/{{tax_payer_id}}/onboard",
+            "description": "Progress only — no OTP, PEM, CSR, or CSID. Status: `queued` → `running` → `onboarded` | `failed`."
+          },
+          "response": [
+            {
+              "name": "200 running",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/v1/taxpayers/12/onboard"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"taxPayerId\": 12,\n  \"status\": \"running\",\n  \"step\": \"compliance\",\n  \"progress\": 55,\n  \"complianceDone\": 3,\n  \"complianceTotal\": 6,\n  \"error\": null\n}"
+            },
+            {
+              "name": "200 onboarded",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/v1/taxpayers/12/onboard"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"taxPayerId\": 12,\n  \"status\": \"onboarded\",\n  \"step\": \"done\",\n  \"progress\": 100,\n  \"complianceDone\": 6,\n  \"complianceTotal\": 6,\n  \"error\": null\n}"
+            },
+            {
+              "name": "200 csr_created",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/v1/taxpayers/12/onboard"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"taxPayerId\": 12,\n  \"status\": \"csr_created\",\n  \"step\": \"csr\",\n  \"progress\": 5,\n  \"complianceDone\": 0,\n  \"complianceTotal\": 6,\n  \"error\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Renew production CSID",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{base_url}}/v1/taxpayers/{{tax_payer_id}}/renew",
+            "description": "Async **202**. Requires `onboarded`. New CSR → renew → compliance samples → new PCSID."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"otp\": \"123456\"\n}"
+                },
+                "url": "{{base_url}}/v1/taxpayers/12/renew"
+              },
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"taxPayerId\": 12,\n  \"status\": \"queued\",\n  \"step\": \"csr\",\n  \"progress\": 0,\n  \"complianceDone\": 0,\n  \"complianceTotal\": 6,\n  \"error\": null\n}"
+            },
+            {
+              "name": "409 not_onboarded",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"otp\": \"123456\"\n}"
+                },
+                "url": "{{base_url}}/v1/taxpayers/12/renew"
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"error\": {\n    \"type\": \"conflict\",\n    \"code\": \"not_onboarded\",\n    \"message\": \"Renew requires a completed first onboard\",\n    \"zatca_code\": null\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Users (ADMIN)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/api/users"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "[\n  {\n    \"id\": 1,\n    \"email\": \"admin@admin.com\",\n    \"username\": \"Administrator\",\n    \"role\": \"ADMIN\",\n    \"activated\": true\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.environment.set('user_id', String(body.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"changeme\",\n  \"username\": \"Example User\",\n  \"role\": \"USER\",\n  \"activated\": true\n}"
+            },
+            "url": "{{base_url}}/api/users"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"changeme\",\n  \"username\": \"Example User\",\n  \"role\": \"USER\"\n}"
+                },
+                "url": "{{base_url}}/api/users"
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 2,\n  \"email\": \"user@example.com\",\n  \"username\": \"Example User\",\n  \"role\": \"USER\",\n  \"activated\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Example User Updated\",\n  \"activated\": true\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"Example User Updated\"\n}"
+                },
+                "url": "{{base_url}}/api/users/2"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": 2,\n  \"email\": \"user@example.com\",\n  \"username\": \"Example User Updated\",\n  \"role\": \"USER\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete user",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/users/{{user_id}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": "{{base_url}}/api/users/2"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
