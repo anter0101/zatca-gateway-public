@@ -4,19 +4,26 @@ import { useTranslations } from "next-intl";
 import { LogOut, UserRound } from "lucide-react";
 
 import LanguageSwitcher from "@/components/common/language-switcher";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "@/i18n/navigation";
-import type { UserType } from "@/types/auth/user";
 import { ThemeButton } from "@/components/common/theme-btn";
+import { Button } from "@/components/ui/button";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import type { UserType } from "@/types/auth/user";
+import { cn } from "@/utils/css-classes-merge";
 
 type Props = {
   user?: UserType;
 };
 
+const navItems = [
+  { href: "/system-owners" as const, labelKey: "nav.system-owners" as const },
+  { href: "/tax-payers" as const, labelKey: "nav.tax-payers" as const },
+];
+
 export default function Header({ user }: Readonly<Props>) {
   const t = useTranslations("common");
   const [, startTransition] = useTransition();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     const response = await fetch("/api/auth/logout", {
@@ -33,10 +40,30 @@ export default function Header({ user }: Readonly<Props>) {
 
   return (
     <header className="bg-background flex h-14 items-center justify-between rounded-t-md px-2 shadow-sm sm:px-2">
-      {/* Desktop */}
-      <section className="flex gap-4">
+      <section className="flex items-center gap-2 sm:gap-4">
         <LanguageSwitcher />
         <ThemeButton />
+        {user && (
+          <nav className="ml-1 flex items-center gap-1 sm:ml-2 sm:gap-2">
+            {navItems.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "rounded-md px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  {t(item.labelKey)}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </section>
 
       <section className="flex gap-4">
