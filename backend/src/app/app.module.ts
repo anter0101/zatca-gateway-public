@@ -9,7 +9,7 @@ import PostgresTypeorm from 'src/config/db-config';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.development'],
+      envFilePath: ['.env', '.env.development'],
     }),
     TypeOrmModule.forRootAsync({
       useClass: PostgresTypeorm,
