@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -25,9 +26,6 @@ import java.util.regex.Pattern;
  * Never calls Fatoora HTTP. Never logs PEM / CSID / private keys.
  */
 public final class SidecarServer {
-
-  private static final Pattern JSON_STRING =
-      Pattern.compile("\"([^\"]+)\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
 
   private static Path sdkHome;
   private static Path jarPath;
@@ -195,15 +193,21 @@ public final class SidecarServer {
     List<String> cmd = baseCmd(configPath);
     cmd.add("-sign");
     cmd.add("-invoice");
-    cmd.add(invoice.toAbsolutePath().toString());
+    // Relative paths: SDK cwd is the sandbox; absolute -signedInvoice is often ignored.
+    cmd.add("invoice.xml");
     cmd.add("-signedInvoice");
-    cmd.add(signed.toAbsolutePath().toString());
+    cmd.add("invoice_signed.xml");
 
     ExecResult exec = exec(cmd, sandbox);
-    if (exec.exitCode != 0 || !Files.exists(signed)) {
-      throw new IllegalStateException("fatoora -sign failed (exit " + exec.exitCode + ")");
+    Path produced = findSignedInvoice(sandbox, signed);
+    if (exec.exitCode != 0 || produced == null) {
+      throw new IllegalStateException(
+          "fatoora -sign failed (exit "
+              + exec.exitCode
+              + "): "
+              + sdkFailureDetail(exec));
     }
-    String signedXml = new String(Files.readAllBytes(signed), StandardCharsets.UTF_8);
+    String signedXml = new String(Files.readAllBytes(produced), StandardCharsets.UTF_8);
     return "{\"signedInvoiceXml\":" + quote(signedXml) + "}";
   }
 
@@ -216,7 +220,7 @@ public final class SidecarServer {
     List<String> cmd = baseCmd(configPath);
     cmd.add("-validate");
     cmd.add("-invoice");
-    cmd.add(invoice.toAbsolutePath().toString());
+    cmd.add("invoice.xml");
 
     ExecResult exec = exec(cmd, sandbox);
     boolean passed =
@@ -253,7 +257,7 @@ public final class SidecarServer {
     List<String> cmd = baseCmd(configPath);
     cmd.add("-generateHash");
     cmd.add("-invoice");
-    cmd.add(invoice.toAbsolutePath().toString());
+    cmd.add("invoice.xml");
 
     ExecResult exec = exec(cmd, sandbox);
     if (exec.exitCode != 0) {
@@ -274,19 +278,39 @@ public final class SidecarServer {
 
     List<String> cmd = baseCmd(configPath);
     cmd.add("-invoice");
-    cmd.add(invoice.toAbsolutePath().toString());
+    cmd.add("invoice_signed.xml");
     cmd.add("-invoiceRequest");
     cmd.add("-apiRequest");
-    cmd.add(apiRequest.toAbsolutePath().toString());
+    cmd.add("api-request.json");
 
     ExecResult exec = exec(cmd, sandbox);
     if (exec.exitCode != 0 || !Files.exists(apiRequest)) {
       throw new IllegalStateException(
-          "fatoora -invoiceRequest failed (exit " + exec.exitCode + ")");
+          "fatoora -invoiceRequest failed (exit "
+              + exec.exitCode
+              + "): "
+              + truncate(exec.stdout + "\n" + exec.stderr, 1500));
     }
     String json = new String(Files.readAllBytes(apiRequest), StandardCharsets.UTF_8).trim();
     // Return SDK JSON as nested object field by embedding raw (already JSON object)
     return "{\"request\":" + json + "}";
+  }
+
+  /** Prefer explicit path; else SDK default `<invoice>_signed.xml` in sandbox cwd. */
+  private static Path findSignedInvoice(Path sandbox, Path preferred) throws IOException {
+    if (Files.exists(preferred)) {
+      return preferred;
+    }
+    Path def = sandbox.resolve("invoice_signed.xml");
+    if (Files.exists(def)) {
+      return def;
+    }
+    try (java.util.stream.Stream<Path> stream = Files.list(sandbox)) {
+      return stream
+          .filter(p -> p.getFileName().toString().endsWith("_signed.xml"))
+          .findFirst()
+          .orElse(null);
+    }
   }
 
   private static void prepareMaterial(Path sandbox, String body, boolean needCert)
@@ -304,9 +328,11 @@ public final class SidecarServer {
       if (csid == null || csid.isEmpty()) {
         throw new IllegalArgumentException("csid is required");
       }
+      // Keep original binarySecurityToken for HTTP Basic auth; SDK cert file
+      // needs the inner base64 DER (sample certs start with "MII").
       Files.write(
           sandbox.resolve("cert.pem"),
-          stripPemHeaders(unescapeJson(csid)).getBytes(StandardCharsets.UTF_8));
+          normalizeCsidForSdk(unescapeJson(csid)).getBytes(StandardCharsets.UTF_8));
     }
 
     String pih = jsonString(body, "pih");
@@ -395,13 +421,13 @@ public final class SidecarServer {
   private static ExecResult exec(List<String> cmd, Path sandbox) throws Exception {
     ProcessBuilder pb = new ProcessBuilder(cmd);
     pb.directory(sandbox.toFile());
+    pb.redirectErrorStream(true);
     pb.environment().put("SDK_CONFIG", sandbox.resolve("config.json").toAbsolutePath().toString());
     pb.environment().put("FATOORA_HOME", sdkHome.resolve("Apps").toAbsolutePath().toString());
     Process p = pb.start();
     String stdout = readStream(p.getInputStream());
-    String stderr = readStream(p.getErrorStream());
     int code = p.waitFor();
-    return new ExecResult(code, stdout, stderr);
+    return new ExecResult(code, stdout, "");
   }
 
   private static String readStream(InputStream in) throws IOException {
@@ -470,14 +496,63 @@ public final class SidecarServer {
     return v;
   }
 
+  /**
+   * Extract a JSON string property by key with a linear scan (no regex). The
+   * previous Pattern-based parser StackOverflow'd on large escaped invoiceXml.
+   * Returns the raw JSON string contents (still escaped); callers may unescape.
+   */
   private static String jsonString(String json, String key) {
-    Matcher m = JSON_STRING.matcher(json);
-    while (m.find()) {
-      if (key.equals(m.group(1))) {
-        return m.group(2);
+    if (json == null || key == null || key.isEmpty()) {
+      return null;
+    }
+    String needle = "\"" + key + "\"";
+    int searchFrom = 0;
+    while (searchFrom < json.length()) {
+      int keyAt = json.indexOf(needle, searchFrom);
+      if (keyAt < 0) {
+        return null;
       }
+      int j = keyAt + needle.length();
+      while (j < json.length() && isJsonWs(json.charAt(j))) {
+        j++;
+      }
+      if (j >= json.length() || json.charAt(j) != ':') {
+        searchFrom = keyAt + 1;
+        continue;
+      }
+      j++;
+      while (j < json.length() && isJsonWs(json.charAt(j))) {
+        j++;
+      }
+      if (j >= json.length() || json.charAt(j) != '"') {
+        searchFrom = keyAt + 1;
+        continue;
+      }
+      j++;
+      StringBuilder sb = new StringBuilder();
+      while (j < json.length()) {
+        char c = json.charAt(j);
+        if (c == '\\') {
+          if (j + 1 >= json.length()) {
+            return null;
+          }
+          sb.append('\\').append(json.charAt(j + 1));
+          j += 2;
+          continue;
+        }
+        if (c == '"') {
+          return sb.toString();
+        }
+        sb.append(c);
+        j++;
+      }
+      return null;
     }
     return null;
+  }
+
+  private static boolean isJsonWs(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
   }
 
   private static String unescapeJson(String s) {
@@ -494,6 +569,60 @@ public final class SidecarServer {
         .replaceAll("-----END[^-]+-----", "")
         .replaceAll("\\s+", "")
         .trim();
+  }
+
+  /**
+   * ZATCA {@code binarySecurityToken} is typically base64(UTF-8 of the base64 DER
+   * body). The Fatoora SDK expects the inner form used in sample certs ({@code MII...}).
+   */
+  private static String normalizeCsidForSdk(String csid) {
+    String stripped = stripPemHeaders(csid);
+    if (stripped.startsWith("MII")) {
+      return stripped;
+    }
+    try {
+      byte[] decoded = Base64.getDecoder().decode(stripped);
+      if (decoded.length > 0 && (decoded[0] & 0xFF) == 0x30) {
+        return Base64.getEncoder().encodeToString(decoded);
+      }
+      String asText = new String(decoded, StandardCharsets.US_ASCII).trim();
+      String inner = stripPemHeaders(asText);
+      if (inner.startsWith("MII")) {
+        return inner;
+      }
+    } catch (IllegalArgumentException ignored) {
+      // not base64 — use stripped as-is
+    }
+    return stripped;
+  }
+
+  /** Prefer SDK ERROR / failed lines over the welcome banner. */
+  private static String sdkFailureDetail(ExecResult exec) {
+    String combined = ((exec.stdout == null ? "" : exec.stdout) + "\n" + (exec.stderr == null ? "" : exec.stderr)).trim();
+    StringBuilder useful = new StringBuilder();
+    for (String line : combined.split("\\r?\\n")) {
+      String t = line.trim();
+      if (t.isEmpty()) {
+        continue;
+      }
+      String lower = t.toLowerCase();
+      if (lower.contains("[error]")
+          || lower.contains("failed to")
+          || lower.contains("exception")
+          || lower.contains("please provide")) {
+        if (useful.length() > 0) {
+          useful.append(' ');
+        }
+        useful.append(t);
+        if (useful.length() > 900) {
+          break;
+        }
+      }
+    }
+    if (useful.length() > 0) {
+      return useful.toString();
+    }
+    return truncate(combined, 1500);
   }
 
   private static String extractHash(String output) {

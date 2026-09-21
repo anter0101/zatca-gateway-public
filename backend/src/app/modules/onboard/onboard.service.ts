@@ -138,6 +138,13 @@ export class OnboardService {
       locked.csrConfig = identity.config;
       locked.csrPem = result.csr;
       locked.privateKeyEncrypted = encryptSecret(result.privateKey);
+      // New keypair invalidates any prior CSID / compliance progress.
+      locked.complianceCsid = null;
+      locked.complianceCsidSecret = null;
+      locked.complianceRequestId = null;
+      locked.productionCsid = null;
+      locked.productionCsidSecret = null;
+      locked.onboardComplianceDone = 0;
       locked.onboardStatus = OnboardStatus.CSR_CREATED;
       locked.onboardStep = OnboardStep.CSR;
       locked.onboardProgress = 5;
