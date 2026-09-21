@@ -6,6 +6,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { VendorModule } from './modules/vendor/vendor.module';
 import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { TaxPayerModule } from './modules/tax-payer/tax-payer.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { ZatcaModule } from './modules/zatca/zatca.module';
+import { SidecarModule } from './modules/sidecar/sidecar.module';
+import { OnboardModule } from './modules/onboard/onboard.module';
 import PostgresTypeorm from 'src/config/db-config';
 
 @Module({
@@ -23,6 +27,10 @@ import PostgresTypeorm from 'src/config/db-config';
     VendorModule,
     ApiKeyModule,
     TaxPayerModule,
+    QueueModule,
+    ZatcaModule,
+    SidecarModule,
+    OnboardModule,
   ],
   controllers: [],
   providers: [],

@@ -46,6 +46,8 @@ services:
       SIDECAR_MAX_CONCURRENT: ${SIDECAR_MAX_CONCURRENT:-8}
     expose:
       - "${SIDECAR_PORT:-8090}"
+    ports:
+      - "${SIDECAR_PORT:-8090}:${SIDECAR_PORT:-8090}"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8090/health || exit 1"]
       interval: 10s

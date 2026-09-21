@@ -17,8 +17,9 @@ WORKDIR /opt/zatca-sidecar
 # Official Fatoora SDK (CSR / sign / validate used from Phase 3)
 COPY sdk/ /opt/zatca-sdk/
 
-COPY --from=build /build/SidecarServer.class ./
+COPY --from=build /build/*.class ./
 
+# SDK root (Data/, Configuration/, Apps/jar). Jar invoked via java -jar (not fatoora script).
 ENV FATOORA_HOME=/opt/zatca-sdk
 ENV SIDECAR_PORT=8090
 ENV SIDECAR_MAX_CONCURRENT=8
