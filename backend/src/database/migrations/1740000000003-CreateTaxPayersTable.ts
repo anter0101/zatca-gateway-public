@@ -90,6 +90,7 @@ export class CreateTaxPayersTable1740000000003 implements MigrationInterface {
             type: 'enum',
             enum: [
               ZatcaEnvironment.SIMULATION,
+              ZatcaEnvironment.DEVELOPER_PORTAL,
               ZatcaEnvironment.PRODUCTION,
             ],
             enumName: 'zatca_environment',

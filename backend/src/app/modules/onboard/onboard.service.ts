@@ -24,6 +24,7 @@ import {
   CsrCreatedDTO,
   OnboardProgressDTO,
 } from './dtos/onboard.dto';
+import { parseStoredOnboardError } from './onboard-error';
 
 export const ONBOARD_JOB = 'run-onboard';
 export const RENEW_JOB = 'run-renew';
@@ -156,6 +157,9 @@ export class OnboardService {
 
   toProgress(taxPayer: TaxPayer): OnboardProgressDTO {
     const total = complianceTotal(taxPayer.invoiceType);
+    const { error, zatcaBody } = parseStoredOnboardError(
+      taxPayer.onboardError,
+    );
     return {
       taxPayerId: taxPayer.id,
       status: taxPayer.onboardStatus || OnboardStatus.IDLE,
@@ -163,7 +167,8 @@ export class OnboardService {
       progress: taxPayer.onboardProgress ?? 0,
       complianceDone: taxPayer.onboardComplianceDone ?? 0,
       complianceTotal: total,
-      error: taxPayer.onboardError ?? null,
+      error,
+      zatcaBody,
     };
   }
 
@@ -224,7 +229,7 @@ export class OnboardService {
       );
     }
 
-    const jobId = `onboard:${taxPayerId}`;
+    const jobId = `onboard-${taxPayerId}`;
     taxPayer.onboardStatus = OnboardStatus.QUEUED;
     taxPayer.onboardStep = OnboardStep.CSID;
     taxPayer.onboardProgress = 0;
@@ -236,10 +241,11 @@ export class OnboardService {
     taxPayer.updatedAt = new Date();
     await this.taxPayerRepository.save(taxPayer);
 
-    await this.onboardQueue.add(
+    await this.enqueueJob(
+      taxPayer,
       ONBOARD_JOB,
-      { taxPayerId, otp, mode: 'onboard' },
-      { jobId, removeOnComplete: true, removeOnFail: false, attempts: 1 },
+      { taxPayerId, otp, mode: 'onboard' as const },
+      jobId,
     );
 
     return this.toProgress(taxPayer);
@@ -275,7 +281,7 @@ export class OnboardService {
       );
     }
 
-    const jobId = `renew:${taxPayerId}`;
+    const jobId = `renew-${taxPayerId}`;
     taxPayer.onboardStatus = OnboardStatus.QUEUED;
     taxPayer.onboardStep = OnboardStep.CSR;
     taxPayer.onboardProgress = 0;
@@ -284,12 +290,63 @@ export class OnboardService {
     taxPayer.onboardJobId = jobId;
     await this.taxPayerRepository.save(taxPayer);
 
-    await this.onboardQueue.add(
+    await this.enqueueJob(
+      taxPayer,
       RENEW_JOB,
-      { taxPayerId, otp, mode: 'renew' },
-      { jobId, removeOnComplete: true, removeOnFail: false, attempts: 1 },
+      { taxPayerId, otp, mode: 'renew' as const },
+      jobId,
     );
 
     return this.toProgress(taxPayer);
+  }
+
+  private async enqueueJob(
+    taxPayer: TaxPayer,
+    name: string,
+    data: { taxPayerId: number; otp: string; mode: 'onboard' | 'renew' },
+    jobId: string,
+  ): Promise<void> {
+    try {
+      const existing = await this.onboardQueue.getJob(jobId);
+      if (existing) {
+        const state = await existing.getState();
+        if (state === 'completed' || state === 'failed') {
+          await existing.remove();
+        } else if (state === 'active' || state === 'waiting' || state === 'delayed') {
+          throw new ApiErrorException(
+            HttpStatus.CONFLICT,
+            'conflict',
+            'onboard_running',
+            'Onboard job already running',
+          );
+        } else {
+          await existing.remove().catch(() => undefined);
+        }
+      }
+
+      await this.onboardQueue.add(name, data, {
+        jobId,
+        removeOnComplete: 100,
+        removeOnFail: 50,
+        attempts: 1,
+      });
+    } catch (err) {
+      if (err instanceof ApiErrorException) {
+        throw err;
+      }
+      this.logger.error(
+        `Failed to enqueue ${jobId}: ${err instanceof Error ? err.message : err}`,
+      );
+      taxPayer.onboardStatus = OnboardStatus.FAILED;
+      taxPayer.onboardError = 'Failed to enqueue onboard job';
+      taxPayer.onboardJobId = null;
+      await this.taxPayerRepository.save(taxPayer);
+      throw new ApiErrorException(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        'api_error',
+        'enqueue_failed',
+        'Failed to enqueue onboard job',
+      );
+    }
   }
 }

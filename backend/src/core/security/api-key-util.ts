@@ -29,9 +29,14 @@ export function generatePlaintext(prefix: ApiKeyPrefix): {
 export function prefixToEnvironment(
   prefix: ApiKeyPrefix,
 ): ZatcaEnvironment {
-  return prefix === ApiKeyPrefix.SK_LIVE
-    ? ZatcaEnvironment.PRODUCTION
-    : ZatcaEnvironment.SIMULATION;
+  switch (prefix) {
+    case ApiKeyPrefix.SK_LIVE:
+      return ZatcaEnvironment.PRODUCTION;
+    case ApiKeyPrefix.SK_SANDBOX:
+      return ZatcaEnvironment.DEVELOPER_PORTAL;
+    default:
+      return ZatcaEnvironment.SIMULATION;
+  }
 }
 
 export function scopeMatches(

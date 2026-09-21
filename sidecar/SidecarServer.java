@@ -163,6 +163,8 @@ public final class SidecarServer {
     cmd.add("-pem");
     if ("simulation".equalsIgnoreCase(environment)) {
       cmd.add("-sim");
+    } else if ("developer_portal".equalsIgnoreCase(environment)) {
+      cmd.add("-nonprod");
     }
 
     ExecResult exec = exec(cmd, sandbox);

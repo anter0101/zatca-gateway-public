@@ -14,6 +14,7 @@ export type ApiErrorBody = {
     code: string;
     message: string;
     zatca_code: string | null;
+    details?: unknown;
   };
 };
 
@@ -24,6 +25,7 @@ export class ApiErrorException extends HttpException {
     code: string,
     message: string,
     zatcaCode: string | null = null,
+    details: unknown = undefined,
   ) {
     const body: ApiErrorBody = {
       error: {
@@ -31,9 +33,13 @@ export class ApiErrorException extends HttpException {
         code,
         message,
         zatca_code: zatcaCode,
+        ...(details !== undefined ? { details } : {}),
       },
     };
     super(body, status);
+    // Nest defaults Error.message to "Api Error Exception" when body has
+    // nested error.message only — keep the real text for workers/logs.
+    this.message = message;
   }
 }
 

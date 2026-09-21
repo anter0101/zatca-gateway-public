@@ -6,45 +6,51 @@ export class StartOnboardDTO {
   @IsString()
   @IsNotEmpty()
   @Length(1, 32)
-  otp: string;
+  otp!: string;
 }
 
 export class OnboardProgressDTO {
   @ApiProperty()
-  taxPayerId: number;
+  taxPayerId!: number;
 
   @ApiProperty()
-  status: string;
+  status!: string;
 
   @ApiPropertyOptional({ nullable: true })
-  step: string | null;
+  step!: string | null;
 
   @ApiProperty()
-  progress: number;
+  progress!: number;
 
   @ApiProperty()
-  complianceDone: number;
+  complianceDone!: number;
 
   @ApiProperty()
-  complianceTotal: number;
+  complianceTotal!  : number;
 
   @ApiPropertyOptional({ nullable: true })
-  error: string | null;
+  error!: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Raw Fatoora/ZATCA error response body when available',
+  })
+  zatcaBody: unknown | null;
 }
 
 export class CsrCreatedDTO {
   @ApiProperty()
-  taxPayerId: number;
+  taxPayerId!: number;
 
   @ApiProperty({ example: 'csr_created' })
-  status: string;
+  status!: string;
 
   @ApiProperty({ description: 'CSR PEM (register in Fatoora portal)' })
-  csr: string;
+  csr!: string;
 
   @ApiProperty()
-  commonName: string;
+  commonName!: string;
 
   @ApiProperty()
-  serialNumber: string;
+  serialNumber!: string;
 }

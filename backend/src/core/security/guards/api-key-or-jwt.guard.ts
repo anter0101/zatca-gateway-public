@@ -15,7 +15,7 @@ export const REQUEST_ZATCA_ENV_KEY = 'zatcaEnvironment';
 export const REQUEST_AUTH_MODE_KEY = 'authMode';
 
 /**
- * Accepts either vendor API key (`sk_test_` / `sk_live_`) or admin JWT.
+ * Accepts either vendor API key (`sk_sandbox_` / `sk_test_` / `sk_live_`) or admin JWT.
  * API key path uses Phase 2 verifyApiKey and updates last_used_at.
  */
 @Injectable()
@@ -43,6 +43,7 @@ export class ApiKeyOrJwtGuard extends AuthGuard('jwt') {
     }
 
     if (
+      token.startsWith(ApiKeyPrefix.SK_SANDBOX) ||
       token.startsWith(ApiKeyPrefix.SK_TEST) ||
       token.startsWith(ApiKeyPrefix.SK_LIVE)
     ) {

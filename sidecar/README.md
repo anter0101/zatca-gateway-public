@@ -5,7 +5,7 @@ Internal-only HTTP service. Nest calls `SIDECAR_URL` (default `http://sidecar:80
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /health` | Liveness |
-| `POST /internal/csr` | Generate CSR + private key (`-sim` when `environment=simulation`) |
+| `POST /internal/csr` | Generate CSR + private key (`-sim` when `environment=simulation`, `-nonprod` when `environment=developer_portal`) |
 | `POST /internal/sign` | Sign invoice XML |
 | `POST /internal/validate` | Local SDK validate |
 | `POST /internal/hash` | Generate invoice hash |

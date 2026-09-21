@@ -17,6 +17,7 @@ import { buildCsrIdentity, csrToBase64 } from './csr-builder';
 import { listSampleKeys, stampSample } from './sample-stamper';
 import { ONBOARD_QUEUE } from 'src/app/modules/queue/queue.module';
 import { RENEW_JOB } from './onboard.service';
+import { formatOnboardError, parseStoredOnboardError } from './onboard-error';
 
 type OnboardJobData = {
   taxPayerId: number;
@@ -48,12 +49,16 @@ export class OnboardProcessor extends WorkerHost {
       } else {
         await this.runOnboard(taxPayerId, otp!);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const detail = formatOnboardError(err);
+      const { error: logMsg } = parseStoredOnboardError(detail);
       this.logger.error(
-        `Onboard failed taxPayer=${taxPayerId}: ${err?.message || err}`,
+        `Onboard failed taxPayer=${taxPayerId}: ${logMsg ?? detail}`,
       );
-      await this.markFailed(taxPayerId, err?.message || 'onboard_failed');
-      throw err;
+      await this.markFailed(taxPayerId, detail);
+      // Keep Bull failedReason aligned with DB onboard_error (not Nest's
+      // default "Api Error Exception").
+      throw new Error(logMsg || detail);
     } finally {
       otp = undefined;
       job.data.otp = '';

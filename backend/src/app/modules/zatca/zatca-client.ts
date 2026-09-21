@@ -56,10 +56,17 @@ export class ZatcaClient {
 }
 
 function resolveBase(config: ConfigService, env: ZatcaEnvironment): string {
-  const key =
-    env === ZatcaEnvironment.PRODUCTION
-      ? 'ZATCA_PRODUCTION_BASE_URL'
-      : 'ZATCA_SIMULATION_BASE_URL';
+  let key: string;
+  switch (env) {
+    case ZatcaEnvironment.PRODUCTION:
+      key = 'ZATCA_PRODUCTION_BASE_URL';
+      break;
+    case ZatcaEnvironment.DEVELOPER_PORTAL:
+      key = 'ZATCA_DEVELOPER_PORTAL_BASE_URL';
+      break;
+    default:
+      key = 'ZATCA_SIMULATION_BASE_URL';
+  }
   const base = config.get<string>(key);
   if (!base) {
     throw new Error(`${key} is not configured`);
@@ -83,29 +90,133 @@ function basicAuth(token: string, secret: string): string {
   );
 }
 
+function normalizeFatooraBody(raw: unknown): unknown {
+  if (raw == null) {
+    return null;
+  }
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(raw)) {
+    raw = raw.toString('utf8');
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return null;
+    }
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed;
+    }
+  }
+  return raw;
+}
+
+function extractFatooraIssue(data: unknown): {
+  code: string | null;
+  message: string | null;
+} {
+  if (data == null) {
+    return { code: null, message: null };
+  }
+  if (typeof data === 'string') {
+    return { code: null, message: data };
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    return extractFatooraIssue(data[0]);
+  }
+  if (typeof data !== 'object') {
+    return { code: null, message: String(data) };
+  }
+
+  const obj = data as Record<string, any>;
+  const first =
+    obj.errors?.[0] ||
+    obj.validationResults?.errorMessages?.[0] ||
+    obj.errorMessages?.[0] ||
+    null;
+
+  if (typeof first === 'string') {
+    return { code: null, message: first };
+  }
+  if (first && typeof first === 'object') {
+    return {
+      code: first.code ?? first.errorCode ?? null,
+      message: first.message ?? first.errorMessage ?? null,
+    };
+  }
+
+  if (Array.isArray(obj.errors) && obj.errors.length) {
+    const joined = obj.errors
+      .map((x: any) =>
+        typeof x === 'string'
+          ? x
+          : [x?.code, x?.message].filter(Boolean).join(': '),
+      )
+      .filter(Boolean)
+      .join('; ');
+    return {
+      code: obj.errors[0]?.code ?? null,
+      message: joined || null,
+    };
+  }
+
+  return {
+    code: obj.code ?? obj.errorCode ?? obj.errorCategory ?? null,
+    message:
+      obj.message ??
+      obj.errorMessage ??
+      obj.dispositionMessage ??
+      (typeof obj.error === 'string' ? obj.error : null) ??
+      (typeof obj.title === 'string' ? obj.title : null),
+  };
+}
+
 function mapFatooraError(err: unknown): never {
   if (err instanceof ApiErrorException) {
     throw err;
   }
   const axiosErr = err as AxiosError<any>;
   const status = axiosErr.response?.status ?? HttpStatus.BAD_GATEWAY;
-  const data = axiosErr.response?.data;
-  const first =
-    data?.errors?.[0] ||
-    data?.validationResults?.errorMessages?.[0] ||
+  const data = normalizeFatooraBody(axiosErr.response?.data);
+  const extracted = extractFatooraIssue(data);
+  // Prefer category over numeric errorCode (e.g. Invalid-CSR over "400")
+  const zatcaCode =
+    (data &&
+      typeof data === 'object' &&
+      !Array.isArray(data) &&
+      typeof (data as any).errorCategory === 'string' &&
+      (data as any).errorCategory) ||
+    (extracted.code && extracted.code !== String(status) ? extracted.code : null) ||
+    extracted.code ||
     null;
-  const zatcaCode = first?.code ?? null;
-  const message =
-    first?.message ||
-    data?.message ||
-    axiosErr.message ||
+  const message = extracted.message;
+
+  let text =
+    (typeof message === 'string' && message.trim()) ||
+    (data != null
+      ? typeof data === 'string'
+        ? data
+        : JSON.stringify(data)
+      : null) ||
+    (axiosErr.response
+      ? `Fatoora HTTP ${status}`
+      : axiosErr.message) ||
     'Fatoora request failed';
+
+  // Prefer ZATCA body over axios's generic "Request failed with status code N"
+  if (/^Request failed with status code \d+$/i.test(text) && data != null) {
+    text = typeof data === 'string' ? data : JSON.stringify(data);
+  }
+
   throw new ApiErrorException(
     status >= 400 && status < 600 ? status : HttpStatus.BAD_GATEWAY,
     'zatca_error',
     zatcaCode || 'fatoora_error',
-    typeof message === 'string' ? message : 'Fatoora request failed',
-    zatcaCode,
+    zatcaCode && !text.includes(String(zatcaCode))
+      ? `${zatcaCode}: ${text}`
+      : text,
+    typeof zatcaCode === 'string' ? zatcaCode : null,
+    data,
   );
 }
 

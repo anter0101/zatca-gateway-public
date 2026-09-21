@@ -29,9 +29,9 @@ export function buildCsrIdentity(
   const egsUuid = randomUUID();
   const serialNumber = `1-Antoor|2-Gateway|3-${egsUuid}`;
   const commonName =
-    environment === ZatcaEnvironment.SIMULATION
-      ? `TST-${tin}-${taxPayer.vatNumber}`
-      : `Antoor-${taxPayer.vatNumber}`;
+    environment === ZatcaEnvironment.PRODUCTION
+      ? `Antoor-${taxPayer.vatNumber}`
+      : `TST-${tin}-${taxPayer.vatNumber}`;
 
   const config: Record<string, string> = {
     'csr.common.name': commonName,
@@ -52,11 +52,34 @@ export function buildCsrIdentity(
   return { commonName, serialNumber, properties, config };
 }
 
-/** Strip PEM headers / whitespace for Fatoora body csr field (base64). */
+/**
+ * Encode CSR for Fatoora `POST /compliance` body `{ "csr": "..." }`.
+ * Fatoora expects UTF-8 base64 of the **full PEM** (headers + newlines),
+ * e.g. decoding starts with `-----BEGIN CERTIFICATE REQUEST-----`.
+ */
 export function csrToBase64(csrPem: string): string {
-  return csrPem
-    .replace(/-----BEGIN[^-]+-----/g, '')
-    .replace(/-----END[^-]+-----/g, '')
-    .replace(/\s+/g, '')
-    .trim();
+  let value = csrPem.trim();
+  if (!value) {
+    return '';
+  }
+
+  // Already Fatoora-encoded (swagger example starts with LS0tLS1CRUdJTi…)
+  const compact = value.replace(/\s+/g, '');
+  if (compact.startsWith('LS0tLS1CRUdJTi')) {
+    return compact;
+  }
+
+  // Literal JSON escapes stored as text (e.g. one-line PEM with `\n`)
+  value = value.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+  value = value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+
+  if (!/^-----BEGIN /m.test(value)) {
+    const body = value.replace(/\s+/g, '');
+    value =
+      '-----BEGIN CERTIFICATE REQUEST-----\n' +
+      body +
+      '\n-----END CERTIFICATE REQUEST-----';
+  }
+
+  return Buffer.from(value, 'utf8').toString('base64');
 }

@@ -1,6 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, FindOneOptions, Not, Repository } from 'typeorm';
+import {
+  FindManyOptions,
+  FindOneOptions,
+  Not,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { TaxPayer } from './tax-payer.entity';
 import { VendorService } from 'src/app/modules/vendor/vendor.service';
 import { ApiErrorException } from 'src/core/filters/api-exception.filter';
@@ -68,8 +74,12 @@ export class TaxPayerService {
       taxPayer.createdAt = new Date();
     }
 
-    const saved = await this.taxPayerRepository.save(taxPayer);
-    return (await this.findById(saved.id))!;
+    try {
+      const saved = await this.taxPayerRepository.save(taxPayer);
+      return (await this.findById(saved.id))!;
+    } catch (err) {
+      this.rethrowUniqueVat(err);
+    }
   }
 
   async update(taxPayer: TaxPayer, updater?: string): Promise<TaxPayer> {
@@ -90,8 +100,12 @@ export class TaxPayerService {
     }
     taxPayer.updatedAt = new Date();
 
-    await this.taxPayerRepository.save(taxPayer);
-    return (await this.findById(taxPayer.id))!;
+    try {
+      await this.taxPayerRepository.save(taxPayer);
+      return (await this.findById(taxPayer.id))!;
+    } catch (err) {
+      this.rethrowUniqueVat(err);
+    }
   }
 
   async delete(taxPayer: TaxPayer, deleter?: string): Promise<void> {
@@ -140,5 +154,21 @@ export class TaxPayerService {
         'VAT number already exists for this vendor',
       );
     }
+  }
+
+  private rethrowUniqueVat(err: unknown): never {
+    if (
+      err instanceof QueryFailedError &&
+      ((err as any).driverError?.code === '23505' ||
+        String((err as any).message || '').includes('UQ_tax_payers_vendor'))
+    ) {
+      throw new ApiErrorException(
+        HttpStatus.CONFLICT,
+        'conflict',
+        'vat_taken',
+        'VAT number already exists for this vendor',
+      );
+    }
+    throw err;
   }
 }

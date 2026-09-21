@@ -15,30 +15,30 @@ import { SoftwareVendor } from 'src/app/modules/vendor/software-vendor.entity';
 @Entity('tax_payers')
 export class TaxPayer extends BaseEntity {
   @Column({ name: 'vendor_id', type: 'int4', nullable: false })
-  vendorId: number;
+  vendorId!: number;
 
   @ManyToOne(() => SoftwareVendor, (vendor) => vendor.taxPayers)
   @JoinColumn({ name: 'vendor_id' })
   vendor?: SoftwareVendor;
 
   @Column({ name: 'vat_number', type: 'varchar', length: 15, nullable: false })
-  vatNumber: string;
+  vatNumber!: string;
 
   @Column({ name: 'legal_name', type: 'varchar', nullable: false })
-  legalName: string;
+  legalName!: string;
 
   @Column({ name: 'organization_unit_name', type: 'varchar', nullable: false })
-  organizationUnitName: string;
+  organizationUnitName!: string;
 
   @Column({ name: 'location_address', type: 'varchar', nullable: false })
-  locationAddress: string;
+  locationAddress!: string;
 
   @Column({
     name: 'industry_business_category',
     type: 'varchar',
     nullable: false,
   })
-  industryBusinessCategory: string;
+  industryBusinessCategory!: string;
 
   @Column({
     name: 'invoice_type',
@@ -48,10 +48,10 @@ export class TaxPayer extends BaseEntity {
     default: TaxPayerInvoiceType.BOTH,
     nullable: false,
   })
-  invoiceType: TaxPayerInvoiceType;
+  invoiceType!: TaxPayerInvoiceType;
 
   @Column({ type: 'varchar', length: 2, default: 'SA', nullable: false })
-  country: string;
+  country!: string;
 
   @Column({
     type: 'enum',
@@ -60,7 +60,7 @@ export class TaxPayer extends BaseEntity {
     default: TaxPayerStatus.DRAFT,
     nullable: false,
   })
-  status: TaxPayerStatus;
+  status!: TaxPayerStatus;
 
   @Column({
     name: 'zatca_environment',
@@ -122,7 +122,7 @@ export class TaxPayer extends BaseEntity {
   productionCsidSecret?: string | null;
 
   @Column({ type: 'bigint', default: 0, nullable: false })
-  icv: string;
+  icv!: string;
 
   @Column({ name: 'last_pih', type: 'varchar', nullable: true })
   lastPih?: string | null;

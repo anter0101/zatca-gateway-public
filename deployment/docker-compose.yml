@@ -77,10 +77,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
+      BULL_PREFIX: ${BULL_PREFIX:-bull:docker}
       SIDECAR_URL: http://sidecar:${SIDECAR_PORT:-8090}
       SIDECAR_MAX_CONCURRENT: ${SIDECAR_MAX_CONCURRENT:-8}
       ZATCA_ENV: ${ZATCA_ENV:-simulation}
       ZATCA_SIMULATION_BASE_URL: ${ZATCA_SIMULATION_BASE_URL:-https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation}
+      ZATCA_DEVELOPER_PORTAL_BASE_URL: ${ZATCA_DEVELOPER_PORTAL_BASE_URL:-https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal}
       ZATCA_PRODUCTION_BASE_URL: ${ZATCA_PRODUCTION_BASE_URL:-https://gw-fatoora.zatca.gov.sa/e-invoicing/core}
     expose:
       - "8080"
