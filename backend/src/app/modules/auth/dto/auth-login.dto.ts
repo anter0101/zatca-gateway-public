@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 /**
  * A DTO representing a login user.
@@ -7,12 +7,13 @@ import { IsString } from 'class-validator';
 export class AuthLoginDTO {
   @ApiProperty({ description: 'User email' })
   @IsString()
-  readonly email: string;
+  readonly email!: string;
 
   @ApiProperty({ description: 'User password' })
   @IsString()
-  readonly password: string;
+  readonly password!: string;
 
   @ApiProperty({ description: 'User remember login', required: false })
+  @IsOptional()
   readonly rememberMe?: number;
 }

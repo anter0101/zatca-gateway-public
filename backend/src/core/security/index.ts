@@ -3,3 +3,5 @@ export * from './guards/roles.guard';
 export * from './decorators/roles.decorator';
 export * from './decorators/auth-user.decorator';
 export * from './password-util';
+export * from './api-key-util';
+export * from './encrypt-util';

@@ -63,6 +63,7 @@ services:
       NODE_ENV: production
       PORT: ${PORT:-8080}
       APP_SECRET_KEY: ${APP_SECRET_KEY:-change-me}
+      API_KEY_HASH_SECRET: ${API_KEY_HASH_SECRET:-change-me-api-key-hash-secret}
       DATABASE_NAME: ${DATABASE_NAME:-zatca_gateway}
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432

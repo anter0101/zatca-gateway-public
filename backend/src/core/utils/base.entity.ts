@@ -1,11 +1,11 @@
-import { Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * Entity base object.
  */
 export abstract class BaseEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ name: 'created_by', nullable: true })
   createdBy?: string;
@@ -22,6 +22,6 @@ export abstract class BaseEntity {
   @Column({ name: 'deleted_by', nullable: true })
   deletedBy?: string;
 
-  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz', nullable: true })
   deletedAt?: Date;
 }
