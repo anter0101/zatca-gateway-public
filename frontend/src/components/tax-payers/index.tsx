@@ -40,7 +40,9 @@ export default function TaxPayers() {
     useState<TaxPayerStatusFilter>("all");
 
   const filters = useMemo(() => {
-    if (selectedStatus === "all") return [];
+    if (selectedStatus === "all") {
+      return [];
+    }
     return [(payer: TaxPayer) => payer.status === selectedStatus];
   }, [selectedStatus]);
 
