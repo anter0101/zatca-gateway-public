@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import { OnboardStatus } from 'src/core/enums/onboard-status';
+import { OnboardStep } from 'src/core/enums/onboard-step';
 
 export class StartOnboardDTO {
   @ApiProperty({ example: '123456', description: 'OTP from Fatoora portal' })
@@ -13,11 +15,18 @@ export class OnboardProgressDTO {
   @ApiProperty()
   taxPayerId!: number;
 
-  @ApiProperty()
-  status!: string;
+  @ApiProperty({ enum: OnboardStatus, example: OnboardStatus.RUNNING })
+  @IsEnum(OnboardStatus)
+  status!: OnboardStatus;
 
-  @ApiPropertyOptional({ nullable: true })
-  step!: string | null;
+  @ApiPropertyOptional({
+    enum: OnboardStep,
+    nullable: true,
+    example: OnboardStep.COMPLIANCE,
+  })
+  @IsOptional()
+  @IsEnum(OnboardStep)
+  step!: OnboardStep | null;
 
   @ApiProperty()
   progress!: number;
@@ -26,7 +35,7 @@ export class OnboardProgressDTO {
   complianceDone!: number;
 
   @ApiProperty()
-  complianceTotal!  : number;
+  complianceTotal!: number;
 
   @ApiPropertyOptional({ nullable: true })
   error!: string | null;
@@ -42,8 +51,12 @@ export class CsrCreatedDTO {
   @ApiProperty()
   taxPayerId!: number;
 
-  @ApiProperty({ example: 'csr_created' })
-  status!: string;
+  @ApiProperty({
+    enum: OnboardStatus,
+    example: OnboardStatus.CSR_CREATED,
+  })
+  @IsEnum(OnboardStatus)
+  status!: OnboardStatus;
 
   @ApiProperty({ description: 'CSR PEM (register in Fatoora portal)' })
   csr!: string;
