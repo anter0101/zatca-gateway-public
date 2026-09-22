@@ -2,6 +2,8 @@
 
 Importable Collection v2.1 with saved examples for Phase 2 (admin) and Phase 3 (onboard).
 
+Full request/response, enum, and error analysis: [`API-ANALYSIS.md`](API-ANALYSIS.md).
+
 ## Import
 
 1. Open Postman → **Import**

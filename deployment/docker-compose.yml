@@ -42,7 +42,9 @@ services:
       dockerfile: sidecar/Dockerfile
     environment:
       SIDECAR_PORT: ${SIDECAR_PORT:-8090}
-      FATOORA_HOME: ${FATOORA_HOME:-/opt/zatca-sdk}
+      # Never interpolate host FATOORA_HOME (SDK install.sh exports a local path).
+      SIDECAR_SDK_HOME: ${SIDECAR_SDK_HOME:-/opt/zatca-sdk}
+      FATOORA_HOME: ${SIDECAR_SDK_HOME:-/opt/zatca-sdk}
       SIDECAR_MAX_CONCURRENT: ${SIDECAR_MAX_CONCURRENT:-8}
     expose:
       - "${SIDECAR_PORT:-8090}"
