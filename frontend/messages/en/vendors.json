@@ -1,7 +1,7 @@
 {
-  "title": "System owners",
+  "title": "Vendors",
   "description": "Manage software vendors (ERP/POS tenants) on the platform.",
-  "add-new": "Add system owner",
+  "add-new": "Add vendor",
   "search-placeholder": "Search by name or slug...",
   "filter-status": "Status",
   "status-filter": {
@@ -10,8 +10,8 @@
     "suspended": "Suspended"
   },
   "table": {
-    "count": "{count} system owners",
-    "empty": "No system owners found.",
+    "count": "{count} vendors",
+    "empty": "No vendors found.",
     "columns": {
       "name": "Name",
       "slug": "Slug",
@@ -28,8 +28,8 @@
     }
   },
   "form": {
-    "create-title": "Create system owner",
-    "edit-title": "Edit system owner",
+    "create-title": "Create vendor",
+    "edit-title": "Edit vendor",
     "name": "Name",
     "slug": "Slug",
     "slug-placeholder": "Optional — generated from name if empty",
@@ -43,13 +43,13 @@
       "status-required": "Status is required"
     },
     "actions": {
-      "error-missing-id": "Missing system owner id",
-      "error-creating": "Failed to create system owner",
-      "error-editing": "Failed to update system owner"
+      "error-missing-id": "Missing vendor id",
+      "error-creating": "Failed to create vendor",
+      "error-editing": "Failed to update vendor"
     }
   },
   "delete": {
-    "title": "Delete system owner",
+    "title": "Delete vendor",
     "message": "Are you sure you want to delete \"{name}\"?"
   }
 }

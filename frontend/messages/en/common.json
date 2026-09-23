@@ -2,12 +2,24 @@
   "name": "Zatca Gateway",
   "logout": "Logout",
   "nav": {
-    "system-owners": "System owners",
+    "vendors": "Vendors",
     "tax-payers": "Tax payers"
   },
   "message": {
     "on-success": "On successful",
     "on-error": "Failed"
+  },
+  "errors": {
+    "codes": {
+      "slug_taken": "This slug is already taken. Please choose another.",
+      "vat_taken": "This VAT number is already registered.",
+      "vat_invalid": "VAT must be 15 digits starting and ending with 3, with the 11th digit 0.",
+      "wasel_invalid": "Location address must be a valid Wasel code (e.g. RRRD2929).",
+      "expires_required": "Provide either an expiry date or a number of days until expiry.",
+      "vendor_has_tax_payers": "Cannot delete this vendor while it still has tax payers. Remove or reassign them first.",
+      "csr_required": "A CSR must be created before starting onboarding.",
+      "onboard_running": "Onboarding is already in progress for this tax payer."
+    }
   },
   "actions": {
     "confirm": "Confirm",

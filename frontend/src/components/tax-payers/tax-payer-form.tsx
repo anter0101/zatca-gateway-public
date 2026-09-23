@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,17 +23,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  type CreateTaxPayerFormData,
   createTaxPayerSchema,
   useCreateTaxPayer,
-  type CreateTaxPayerFormData,
 } from "@/hooks/tax-payers/create";
 import {
-  useEditTaxPayer,
   type EditTaxPayerFormData,
+  useEditTaxPayer,
 } from "@/hooks/tax-payers/edit";
 import type { TaxPayer } from "@/types/tax-payer";
-import { invoiceTypeOptions } from "@/types/tax-payer";
+import {
+  invoiceTypeOptions,
+  type SellerIdScheme,
+  sellerIdSchemeOptions,
+} from "@/types/tax-payer";
 import { cn } from "@/utils/css-classes-merge";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type TaxPayerFormProps = {
   mode: "create" | "edit";
@@ -45,6 +49,17 @@ type TaxPayerFormProps = {
 
 type FormData = CreateTaxPayerFormData | EditTaxPayerFormData;
 
+function resolveSellerIdScheme(
+  value: string | null | undefined,
+): SellerIdScheme {
+  for (const scheme of sellerIdSchemeOptions) {
+    if (scheme === value) {
+      return scheme;
+    }
+  }
+  return "CRN";
+}
+
 const defaultValues: FormData = {
   vatNumber: "",
   legalName: "",
@@ -52,7 +67,13 @@ const defaultValues: FormData = {
   locationAddress: "",
   industryBusinessCategory: "",
   invoiceType: "both",
-  status: "draft",
+  streetName: "",
+  buildingNumber: "",
+  district: "",
+  city: "",
+  postalZone: "",
+  sellerIdScheme: "CRN",
+  sellerIdValue: "",
 };
 
 export default function TaxPayerForm({
@@ -88,13 +109,7 @@ export default function TaxPayerForm({
       form.reset();
       onClose?.();
     } catch {
-      toast.error(
-        t(
-          mode === "create"
-            ? "actions.error-creating"
-            : "actions.error-editing",
-        ),
-      );
+      // Error toast is handled by the mutation onError
     }
   };
 
@@ -107,7 +122,13 @@ export default function TaxPayerForm({
         locationAddress: payer.locationAddress,
         industryBusinessCategory: payer.industryBusinessCategory,
         invoiceType: payer.invoiceType,
-        status: payer.status,
+        streetName: payer.streetName ?? "",
+        buildingNumber: payer.buildingNumber ?? "",
+        district: payer.district ?? "",
+        city: payer.city ?? "",
+        postalZone: payer.postalZone ?? "",
+        sellerIdScheme: resolveSellerIdScheme(payer.sellerIdScheme),
+        sellerIdValue: payer.sellerIdValue ?? "",
       });
     } else if (mode === "create") {
       form.reset(defaultValues);
@@ -129,6 +150,35 @@ export default function TaxPayerForm({
         </header>
 
         <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-1">
+          {mode === "edit" && payer && (
+            <div className="bg-muted/40 grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-2">
+              <div>
+                <p className="text-muted-foreground text-xs font-medium">
+                  {t("status")}
+                </p>
+                <p className="text-sm font-medium">
+                  {t(`status-${payer.status}`)}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs font-medium">
+                  {t("country")}
+                </p>
+                <p className="text-sm font-medium">{payer.country || "SA"}</p>
+              </div>
+              {payer.zatcaEnvironment ? (
+                <div className="sm:col-span-2">
+                  <p className="text-muted-foreground text-xs font-medium">
+                    {t("zatca-environment")}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {t(`zatca-environment-options.${payer.zatcaEnvironment}`)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          )}
+
           <FormField
             control={form.control}
             name="legalName"
@@ -232,37 +282,149 @@ export default function TaxPayerForm({
             )}
           />
 
-          {mode === "edit" && (
+          <div className="border-border space-y-4 border-t pt-4">
+            <h2 className="text-foreground text-sm font-semibold">
+              {t("seller-address-section")}
+            </h2>
+
             <FormField
               control={form.control}
-              name="status"
+              name="streetName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t("status")}</FormLabel>
+                  <FormLabel>{t("street-name")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="buildingNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("building-number")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="district"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("district")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("city")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="postalZone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("postal-zone")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sellerIdScheme"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("seller-id-scheme")}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    value={field.value ?? "draft"}
+                    value={field.value ?? "CRN"}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("select-status")} />
+                        <SelectValue
+                          placeholder={t("select-seller-id-scheme")}
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="draft">{t("status-draft")}</SelectItem>
-                      <SelectItem value="onboarded">
-                        {t("status-onboarded")}
-                      </SelectItem>
-                      <SelectItem value="suspended">
-                        {t("status-suspended")}
-                      </SelectItem>
+                      {sellerIdSchemeOptions.map((scheme) => (
+                        <SelectItem key={scheme} value={scheme}>
+                          {t(`seller-id-scheme-options.${scheme}`)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          )}
+
+            <FormField
+              control={form.control}
+              name="sellerIdValue"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("seller-id-value")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <footer className="flex justify-end gap-3 border-t pt-4">

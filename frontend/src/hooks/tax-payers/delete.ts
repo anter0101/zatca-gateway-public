@@ -1,28 +1,33 @@
 import { useTranslations } from "next-intl";
+import type { AxiosError } from "axios";
 import { toast } from "react-toastify";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { removeTaxPayer } from "@/mockup-data/tax-payers";
+import { useDelete } from "@/hooks/base/delete";
+import type { IApiResError } from "@/types/api-res-error";
+import { getApiErrorMessage } from "@/utils/api-error";
 
 import { taxPayersQueryKey } from "./get-all";
 
 export function useDeleteTaxPayer(vendorId: number) {
-  const t = useTranslations("common.message");
-  const queryClient = useQueryClient();
+  const t = useTranslations("common");
 
-  const mutation = useMutation({
-    mutationFn: (id: number) => removeTaxPayer(id),
+  const {
+    mutateAsync: deleteTaxPayerMutation,
+    isPending: isDeleteTaxPayerPending,
+  } = useDelete<Record<string, never>, AxiosError<IApiResError>>({
+    endPoint: `api/vendors/${vendorId}/tax-payers`,
+    queryKey: [...taxPayersQueryKey(vendorId)],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taxPayersQueryKey(vendorId) });
-      toast.success(t("on-success"));
+      toast.success(t("message.on-success"));
     },
-    onError: () => {
-      toast.error(t("on-error"));
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t));
     },
   });
 
   return {
-    deleteTaxPayerMutation: mutation.mutateAsync,
-    isDeleteTaxPayerPending: mutation.isPending,
+    deleteTaxPayerMutation: async (id: number) =>
+      deleteTaxPayerMutation(String(id)),
+    isDeleteTaxPayerPending,
   };
 }

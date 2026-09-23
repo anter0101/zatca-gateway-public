@@ -1,9 +1,12 @@
 import { useLocale, useTranslations } from "next-intl";
+import type { AxiosError } from "axios";
 import { toast } from "react-toastify";
 
 import client from "@/lib/client";
 import queryClient from "@/lib/query-client";
+import type { IApiResError } from "@/types/api-res-error";
 import type { IDataOptions } from "@/types/types";
+import { getApiErrorMessage } from "@/utils/api-error";
 import { useMutation } from "@tanstack/react-query";
 
 export function usePut<TData, TResponse, TError>({
@@ -13,7 +16,7 @@ export function usePut<TData, TResponse, TError>({
   onError,
 }: IDataOptions<TData, TResponse, TError>) {
   const locale = useLocale();
-  const t = useTranslations("common.message");
+  const t = useTranslations("common");
 
   const mutation = useMutation<
     TResponse,
@@ -34,7 +37,7 @@ export function usePut<TData, TResponse, TError>({
       if (onSuccess) {
         onSuccess(res);
       } else {
-        toast.success(t("on-success"));
+        toast.success(t("message.on-success"));
       }
     },
 
@@ -42,7 +45,9 @@ export function usePut<TData, TResponse, TError>({
       if (onError) {
         onError(error);
       } else {
-        toast.error(t("on-error"));
+        toast.error(
+          getApiErrorMessage(error as AxiosError<IApiResError>, t),
+        );
       }
     },
   });

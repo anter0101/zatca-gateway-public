@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { z } from "zod";
 
 import type { IApiResError } from "@/types/api-res-error";
+import { getApiErrorMessage } from "@/utils/api-error";
 
 export const createLoginSchema = (
   t: (key: string, values?: Record<string, string | number | Date>) => string,
@@ -29,24 +30,25 @@ export const createLoginSchema = (
         }),
       )
       .min(
-        6,
+        5,
         t("validation.field-min-length", {
           fieldName: t("field-names.password"),
-          min: 6,
+          min: 5,
         }),
       ),
   });
 
 export type LoginInput = z.infer<ReturnType<typeof createLoginSchema>>;
 
-export interface LoginResult {
+export type LoginResult = {
   ok: boolean;
   error?: string | null;
-}
+};
 
 export const useLogin = () => {
   const router = useRouter();
   const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const [isPending, setIsPending] = useState(false);
 
   const mutate = async (loginData: LoginInput): Promise<LoginResult> => {
@@ -68,9 +70,15 @@ export const useLogin = () => {
         return { ok: false, error: errorMessage };
       }
     } catch (error) {
-      const axiosError = error as AxiosError<IApiResError>;
-      const errMessage =
-        axiosError?.response?.data?.message || t("errors.server-error");
+      const errMessage = getApiErrorMessage(
+        error as AxiosError<IApiResError>,
+        (key) => {
+          if (key === "message.on-error") {
+            return t("errors.server-error");
+          }
+          return tCommon(key);
+        },
+      );
       toast.error(errMessage);
       return { ok: false, error: errMessage };
     } finally {

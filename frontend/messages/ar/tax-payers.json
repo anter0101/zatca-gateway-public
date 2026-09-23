@@ -1,8 +1,8 @@
 {
   "title": "دافعو الضرائب",
-  "description": "إدارة هوية دافعي الضرائب تحت مالك النظام المحدد.",
+  "description": "إدارة هوية دافعي الضرائب تحت المورد المحدد.",
   "add-new": "إضافة دافع ضرائب",
-  "select-owner": "اختر مالك النظام",
+  "select-vendor": "اختر المورد",
   "search-placeholder": "ابحث بالاسم أو الرقم الضريبي أو الفرع...",
   "filter-status": "الحالة",
   "status-filter": {
@@ -18,8 +18,8 @@
   },
   "table": {
     "count": "{count} دافع ضريبة",
-    "empty": "لا يوجد دافعو ضرائب لهذا المالك.",
-    "select-owner-first": "اختر مالك نظام لعرض دافعي الضرائب.",
+    "empty": "لا يوجد دافعو ضرائب لهذا المورد.",
+    "select-vendor-first": "اختر موردًا لعرض دافعي الضرائب.",
     "columns": {
       "legal-name": "الاسم القانوني",
       "vat": "الرقم الضريبي",
@@ -43,7 +43,7 @@
     "edit-title": "تعديل دافع ضريبة",
     "legal-name": "الاسم القانوني",
     "vat-number": "الرقم الضريبي",
-    "vat-placeholder": "15 رقمًا يبدأ وينتهي بـ 3",
+    "vat-placeholder": "مثال: 399999999900003",
     "organization-unit": "الوحدة التنظيمية / الفرع",
     "location-address": "عنوان الموقع (واصل)",
     "location-placeholder": "مثال: RRRD2929",
@@ -56,13 +56,36 @@
       "simplified": "مبسطة"
     },
     "status": "الحالة",
-    "select-status": "اختر الحالة",
     "status-draft": "مسودة",
     "status-onboarded": "مكتمل التسجيل",
     "status-suspended": "موقوف",
+    "country": "الدولة",
+    "zatca-environment": "بيئة الزكاة والضريبة",
+    "zatca-environment-options": {
+      "simulation": "محاكاة",
+      "developer_portal": "بوابة المطورين",
+      "production": "إنتاج"
+    },
+    "seller-address-section": "عنوان البائع",
+    "street-name": "اسم الشارع",
+    "building-number": "رقم المبنى",
+    "district": "الحي",
+    "city": "المدينة",
+    "postal-zone": "الرمز البريدي",
+    "seller-id-scheme": "نوع هوية البائع",
+    "select-seller-id-scheme": "اختر النوع",
+    "seller-id-scheme-options": {
+      "CRN": "CRN — السجل التجاري",
+      "MOM": "MOM",
+      "MLS": "MLS",
+      "SAG": "SAG",
+      "OTH": "OTH — أخرى",
+      "700": "700"
+    },
+    "seller-id-value": "قيمة هوية البائع",
     "cancel": "إلغاء",
     "validation": {
-      "vat-invalid": "يجب أن يكون الرقم الضريبي 15 رقمًا يبدأ وينتهي بـ 3",
+      "vat-invalid": "يجب أن يكون الرقم الضريبي 15 رقمًا يبدأ وينتهي بـ 3، والرقم الحادي عشر هو 0",
       "legal-name-required": "الاسم القانوني مطلوب",
       "organization-unit-required": "الوحدة التنظيمية مطلوبة",
       "location-address-invalid": "العنوان يجب أن يكون 4 أحرف + 4 أرقام (مثل RRRD2929)",

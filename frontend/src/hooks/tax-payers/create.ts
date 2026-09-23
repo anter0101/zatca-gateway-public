@@ -1,18 +1,21 @@
 import { useTranslations } from "next-intl";
+import type { AxiosError } from "axios";
 import { toast } from "react-toastify";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { createTaxPayer } from "@/mockup-data/tax-payers";
-import type { InvoiceType, TaxPayerStatus } from "@/types/tax-payer";
+import { useCreate } from "@/hooks/base/create";
+import type { IApiResError } from "@/types/api-res-error";
+import type { TaxPayer } from "@/types/tax-payer";
+import { getApiErrorMessage } from "@/utils/api-error";
 
 import { taxPayersQueryKey } from "./get-all";
 
 export function createTaxPayerSchema(t: (key: string) => string) {
   return z.object({
-    vatNumber: z
-      .string()
-      .regex(/^3\d{13}3$/, t("validation.vat-invalid")),
+    vatNumber: z.string().refine(
+      (value) => /^3\d{13}3$/.test(value) && value[10] === "0",
+      { message: t("validation.vat-invalid") },
+    ),
     legalName: z.string().min(1, t("validation.legal-name-required")),
     organizationUnitName: z
       .string()
@@ -26,7 +29,15 @@ export function createTaxPayerSchema(t: (key: string) => string) {
     invoiceType: z.enum(["both", "standard", "simplified"], {
       message: t("validation.invoice-type-required"),
     }),
-    status: z.enum(["draft", "onboarded", "suspended"]).optional(),
+    streetName: z.string().optional(),
+    buildingNumber: z.string().optional(),
+    district: z.string().optional(),
+    city: z.string().optional(),
+    postalZone: z.string().optional(),
+    sellerIdScheme: z
+      .enum(["CRN", "MOM", "MLS", "SAG", "OTH", "700"])
+      .optional(),
+    sellerIdValue: z.string().optional(),
   });
 }
 
@@ -35,30 +46,21 @@ export type CreateTaxPayerFormData = z.infer<
 >;
 
 export function useCreateTaxPayer(vendorId: number) {
-  const t = useTranslations("common.message");
-  const queryClient = useQueryClient();
+  const t = useTranslations("common");
 
-  const mutation = useMutation({
-    mutationFn: (data: {
-      vatNumber: string;
-      legalName: string;
-      organizationUnitName: string;
-      locationAddress: string;
-      industryBusinessCategory: string;
-      invoiceType: InvoiceType;
-      status?: TaxPayerStatus;
-    }) => createTaxPayer(vendorId, data),
+  const {
+    mutateAsync: createTaxPayerMutation,
+    isPending: isCreateTaxPayerPending,
+  } = useCreate<CreateTaxPayerFormData, TaxPayer, AxiosError<IApiResError>>({
+    endPoint: `/api/vendors/${vendorId}/tax-payers`,
+    queryKey: [...taxPayersQueryKey(vendorId)],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taxPayersQueryKey(vendorId) });
-      toast.success(t("on-success"));
+      toast.success(t("message.on-success"));
     },
-    onError: () => {
-      toast.error(t("on-error"));
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t));
     },
   });
 
-  return {
-    createTaxPayerMutation: mutation.mutateAsync,
-    isCreateTaxPayerPending: mutation.isPending,
-  };
+  return { createTaxPayerMutation, isCreateTaxPayerPending };
 }

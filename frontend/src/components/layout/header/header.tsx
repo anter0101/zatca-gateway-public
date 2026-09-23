@@ -15,7 +15,7 @@ type Props = {
 };
 
 const navItems = [
-  { href: "/system-owners" as const, labelKey: "nav.system-owners" as const },
+  { href: "/vendors" as const, labelKey: "nav.vendors" as const },
   { href: "/tax-payers" as const, labelKey: "nav.tax-payers" as const },
 ];
 

@@ -1,9 +1,11 @@
 import { useTranslations } from "next-intl";
+import type { AxiosError } from "axios";
 import { toast } from "react-toastify";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { updateTaxPayer } from "@/mockup-data/tax-payers";
-import type { InvoiceType, TaxPayerStatus } from "@/types/tax-payer";
+import { usePut } from "@/hooks/base/put";
+import type { IApiResError } from "@/types/api-res-error";
+import type { TaxPayer } from "@/types/tax-payer";
+import { getApiErrorMessage } from "@/utils/api-error";
 
 import type { CreateTaxPayerFormData } from "./create";
 import { taxPayersQueryKey } from "./get-all";
@@ -11,36 +13,21 @@ import { taxPayersQueryKey } from "./get-all";
 export type EditTaxPayerFormData = CreateTaxPayerFormData;
 
 export function useEditTaxPayer(vendorId: number) {
-  const t = useTranslations("common.message");
-  const queryClient = useQueryClient();
+  const t = useTranslations("common");
 
-  const mutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: {
-        vatNumber: string;
-        legalName: string;
-        organizationUnitName: string;
-        locationAddress: string;
-        industryBusinessCategory: string;
-        invoiceType: InvoiceType;
-        status?: TaxPayerStatus;
-      };
-    }) => updateTaxPayer(id, data),
+  const {
+    mutateAsync: editTaxPayerMutation,
+    isPending: isEditTaxPayerPending,
+  } = usePut<EditTaxPayerFormData, TaxPayer, AxiosError<IApiResError>>({
+    endPoint: `/api/vendors/${vendorId}/tax-payers`,
+    queryKey: [...taxPayersQueryKey(vendorId)],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taxPayersQueryKey(vendorId) });
-      toast.success(t("on-success"));
+      toast.success(t("message.on-success"));
     },
-    onError: () => {
-      toast.error(t("on-error"));
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, t));
     },
   });
 
-  return {
-    editTaxPayerMutation: mutation.mutateAsync,
-    isEditTaxPayerPending: mutation.isPending,
-  };
+  return { editTaxPayerMutation, isEditTaxPayerPending };
 }

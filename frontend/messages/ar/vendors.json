@@ -1,7 +1,7 @@
 {
-  "title": "مالكو الأنظمة",
+  "title": "الموردون",
   "description": "إدارة موردي البرمجيات (مستأجرو ERP/POS) على المنصة.",
-  "add-new": "إضافة مالك نظام",
+  "add-new": "إضافة مورد",
   "search-placeholder": "ابحث بالاسم أو المعرف...",
   "filter-status": "الحالة",
   "status-filter": {
@@ -10,8 +10,8 @@
     "suspended": "موقوف"
   },
   "table": {
-    "count": "{count} مالك نظام",
-    "empty": "لا يوجد مالكو أنظمة.",
+    "count": "{count} مورد",
+    "empty": "لا يوجد موردون.",
     "columns": {
       "name": "الاسم",
       "slug": "المعرف",
@@ -28,8 +28,8 @@
     }
   },
   "form": {
-    "create-title": "إنشاء مالك نظام",
-    "edit-title": "تعديل مالك نظام",
+    "create-title": "إنشاء مورد",
+    "edit-title": "تعديل مورد",
     "name": "الاسم",
     "slug": "المعرف",
     "slug-placeholder": "اختياري — يُنشأ من الاسم إن تُرك فارغًا",
@@ -43,13 +43,13 @@
       "status-required": "الحالة مطلوبة"
     },
     "actions": {
-      "error-missing-id": "معرف مالك النظام مفقود",
-      "error-creating": "فشل إنشاء مالك النظام",
-      "error-editing": "فشل تحديث مالك النظام"
+      "error-missing-id": "معرف المورد مفقود",
+      "error-creating": "فشل إنشاء المورد",
+      "error-editing": "فشل تحديث المورد"
     }
   },
   "delete": {
-    "title": "حذف مالك النظام",
+    "title": "حذف المورد",
     "message": "هل أنت متأكد من حذف \"{name}\"؟"
   }
 }

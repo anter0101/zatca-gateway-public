@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,24 +23,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  createSystemOwnerSchema,
-  useCreateSystemOwner,
-  type CreateSystemOwnerFormData,
-} from "@/hooks/system-owners/create";
+  type CreateVendorFormData,
+  createVendorSchema,
+  useCreateVendor,
+} from "@/hooks/vendors/create";
 import {
-  useEditSystemOwner,
-  type EditSystemOwnerFormData,
-} from "@/hooks/system-owners/edit";
-import type { SystemOwner } from "@/types/system-owner";
+  type EditVendorFormData,
+  useEditVendor,
+} from "@/hooks/vendors/edit";
+import type { Vendor } from "@/types/vendor";
 import { cn } from "@/utils/css-classes-merge";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-type SystemOwnerFormProps = {
+type VendorFormProps = {
   mode: "create" | "edit";
-  owner?: SystemOwner;
+  vendor?: Vendor;
   onClose?: () => void;
 };
 
-type FormData = CreateSystemOwnerFormData | EditSystemOwnerFormData;
+type FormData = CreateVendorFormData | EditVendorFormData;
 
 const defaultValues: FormData = {
   name: "",
@@ -49,34 +49,32 @@ const defaultValues: FormData = {
   status: "active",
 };
 
-export default function SystemOwnerForm({
+export default function VendorForm({
   mode,
-  owner,
+  vendor,
   onClose,
-}: SystemOwnerFormProps) {
-  const t = useTranslations("system-owners.form");
-  const { createSystemOwnerMutation, isCreateSystemOwnerPending } =
-    useCreateSystemOwner();
-  const { editSystemOwnerMutation, isEditSystemOwnerPending } =
-    useEditSystemOwner();
+}: VendorFormProps) {
+  const t = useTranslations("vendors.form");
+  const { createVendorMutation, isCreateVendorPending } = useCreateVendor();
+  const { editVendorMutation, isEditVendorPending } = useEditVendor();
 
-  const isLoading = isCreateSystemOwnerPending || isEditSystemOwnerPending;
+  const isLoading = isCreateVendorPending || isEditVendorPending;
 
   const form = useForm<FormData>({
-    resolver: zodResolver(createSystemOwnerSchema(t)),
+    resolver: zodResolver(createVendorSchema(t)),
     defaultValues,
   });
 
   const onSubmit = async (data: FormData) => {
     try {
       if (mode === "create") {
-        await createSystemOwnerMutation(data);
+        await createVendorMutation(data);
       } else {
-        if (!owner) {
+        if (!vendor) {
           toast.error(t("actions.error-missing-id"));
           return;
         }
-        await editSystemOwnerMutation({ id: owner.id, data });
+        await editVendorMutation({ id: vendor.id, data });
       }
       form.reset();
       onClose?.();
@@ -92,16 +90,16 @@ export default function SystemOwnerForm({
   };
 
   useEffect(() => {
-    if (mode === "edit" && owner) {
+    if (mode === "edit" && vendor) {
       form.reset({
-        name: owner.name,
-        slug: owner.slug,
-        status: owner.status,
+        name: vendor.name,
+        slug: vendor.slug,
+        status: vendor.status,
       });
     } else if (mode === "create") {
       form.reset(defaultValues);
     }
-  }, [mode, form, owner]);
+  }, [mode, form, vendor]);
 
   return (
     <Form {...form}>

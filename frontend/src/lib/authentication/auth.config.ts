@@ -77,12 +77,17 @@ export const authConfig = {
     ? {
         cookies: {
           sessionToken: {
-            name: `__Secure-next-auth.session-token`,
+            name:
+              process.env.NEXT_PUBLIC_APP_URL?.startsWith("https")
+                ? `__Secure-next-auth.session-token`
+                : `next-auth.session-token`,
             options: {
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "lax" as const,
               path: "/",
-              secure: true, // secure only in production
+              secure: Boolean(
+                process.env.NEXT_PUBLIC_APP_URL?.startsWith("https"),
+              ),
             },
           },
         },

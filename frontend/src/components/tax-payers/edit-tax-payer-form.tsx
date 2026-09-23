@@ -30,7 +30,7 @@ export default function EditTaxPayerForm({
     >
       <DialogContent
         showCloseButton={false}
-        className="max-w-[calc(100%-2rem)] border-none bg-transparent p-0 shadow-none sm:max-w-md"
+        className="max-w-[calc(100%-2rem)] border-none bg-transparent p-0 shadow-none sm:max-w-lg"
       >
         <DialogTitle className="sr-only">{t("edit-title")}</DialogTitle>
         <TaxPayerForm

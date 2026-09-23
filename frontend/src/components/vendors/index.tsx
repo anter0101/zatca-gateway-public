@@ -4,10 +4,6 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Building2, Search } from "lucide-react";
 
-import CreateSystemOwnerForm from "@/components/system-owners/create-system-owner-form";
-import DeleteSystemOwnerForm from "@/components/system-owners/delete-system-owner-form";
-import EditSystemOwnerForm from "@/components/system-owners/edit-system-owner-form";
-import SystemOwnersTable from "@/components/system-owners/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,31 +15,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGetSystemOwners } from "@/hooks/system-owners/get-all";
+import CreateVendorForm from "@/components/vendors/create-vendor-form";
+import DeleteVendorForm from "@/components/vendors/delete-vendor-form";
+import EditVendorForm from "@/components/vendors/edit-vendor-form";
+import VendorsTable from "@/components/vendors/table";
 import { useFilters } from "@/hooks/use-filters";
+import { useGetVendors } from "@/hooks/vendors/get-all";
 import type { ModalState } from "@/types/modal";
-import type {
-  SystemOwner,
-  SystemOwnerStatusFilter,
-} from "@/types/system-owner";
-import { systemOwnerStatusOptions } from "@/types/system-owner";
+import type { Vendor, VendorStatusFilter } from "@/types/vendor";
+import { vendorStatusOptions } from "@/types/vendor";
 
-const PAGE_SIZE = 5;
-
-export default function SystemOwners() {
-  const t = useTranslations("system-owners");
-  const { data: owners = [], isPending } = useGetSystemOwners();
-  const [openModal, setOpenModal] = useState<ModalState<SystemOwner>>(null);
+export default function Vendors() {
+  const t = useTranslations("vendors");
+  const [openModal, setOpenModal] = useState<ModalState<Vendor>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedStatus, setSelectedStatus] =
-    useState<SystemOwnerStatusFilter>("all");
+    useState<VendorStatusFilter>("all");
 
-  const filters = useMemo(() => {
-    if (selectedStatus === "all") {
-      return [];
-    }
-    return [(owner: SystemOwner) => owner.status === selectedStatus];
-  }, [selectedStatus]);
+  const { data: vendors, isPending } = useGetVendors({
+    page: 1,
+    pageSize: 100,
+  });
+
+  const filters = useMemo(
+    () => [
+      (vendor: Vendor) =>
+        selectedStatus === "all" || vendor.status === selectedStatus,
+    ],
+    [selectedStatus],
+  );
 
   const {
     currentPage,
@@ -51,14 +51,14 @@ export default function SystemOwners() {
     paginatedData,
     setCurrentPage,
     resetPage,
-  } = useFilters<SystemOwner>({
-    data: owners,
-    pageSize: PAGE_SIZE,
+  } = useFilters<Vendor>({
+    data: vendors,
+    pageSize: 5,
     filters,
     searchValue,
-    searchFn: (owner, search) =>
-      owner.name.toLowerCase().includes(search) ||
-      owner.slug.toLowerCase().includes(search),
+    searchFn: (vendor, search) =>
+      vendor.name.toLowerCase().includes(search) ||
+      vendor.slug.toLowerCase().includes(search),
   });
 
   const handleSearchChange = (value: string) => {
@@ -66,7 +66,7 @@ export default function SystemOwners() {
     resetPage();
   };
 
-  const handleStatusChange = (value: SystemOwnerStatusFilter) => {
+  const handleStatusChange = (value: VendorStatusFilter) => {
     setSelectedStatus(value);
     resetPage();
   };
@@ -108,7 +108,7 @@ export default function SystemOwners() {
           <Select
             value={selectedStatus}
             onValueChange={(value) =>
-              handleStatusChange(value as SystemOwnerStatusFilter)
+              handleStatusChange(value as VendorStatusFilter)
             }
           >
             <SelectTrigger className="w-full lg:w-1/4">
@@ -117,7 +117,7 @@ export default function SystemOwners() {
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>{t("filter-status")}</SelectLabel>
-                {systemOwnerStatusOptions.map((status) => (
+                {vendorStatusOptions.map((status) => (
                   <SelectItem key={status} value={status}>
                     {t(`status-filter.${status}`)}
                   </SelectItem>
@@ -127,33 +127,35 @@ export default function SystemOwners() {
           </Select>
         </section>
 
-        <SystemOwnersTable
+        <VendorsTable
           data={paginatedData}
           totalCount={filteredData.length}
-          pageSize={PAGE_SIZE}
+          pageSize={5}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
           isLoading={isPending}
-          onEdit={(owner) => setOpenModal({ type: "edit", entity: owner })}
-          onDelete={(owner) => setOpenModal({ type: "delete", entity: owner })}
+          onEdit={(vendor) => setOpenModal({ type: "edit", entity: vendor })}
+          onDelete={(vendor) =>
+            setOpenModal({ type: "delete", entity: vendor })
+          }
         />
 
         {openModal?.type === "create" && (
-          <CreateSystemOwnerForm
+          <CreateVendorForm
             openForm={openModal.type === "create"}
             setOpenForm={() => setOpenModal(null)}
           />
         )}
         {openModal?.type === "edit" && (
-          <EditSystemOwnerForm
-            owner={openModal.entity}
+          <EditVendorForm
+            vendor={openModal.entity}
             openForm={openModal.type === "edit"}
             setOpenForm={() => setOpenModal(null)}
           />
         )}
         {openModal?.type === "delete" && (
-          <DeleteSystemOwnerForm
-            owner={openModal.entity}
+          <DeleteVendorForm
+            vendor={openModal.entity}
             openDelete={openModal.type === "delete"}
             setOpenDelete={() => setOpenModal(null)}
           />

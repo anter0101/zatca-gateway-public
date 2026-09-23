@@ -1,9 +1,12 @@
 import { useLocale, useTranslations } from "next-intl";
+import type { AxiosError } from "axios";
 import { toast } from "react-toastify";
 
 import client from "@/lib/client";
 import queryClient from "@/lib/query-client";
+import type { IApiResError } from "@/types/api-res-error";
 import type { IDataOptions } from "@/types/types";
+import { getApiErrorMessage } from "@/utils/api-error";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 
@@ -18,7 +21,7 @@ export function useCreate<TData, TResponse, TError>({
   TData
 > {
   const locale = useLocale();
-  const t = useTranslations("common.message");
+  const t = useTranslations("common");
 
   return useMutation<TResponse, TError, TData>({
     mutationFn: async (data) => {
@@ -35,14 +38,16 @@ export function useCreate<TData, TResponse, TError>({
       if (onSuccess) {
         onSuccess(res);
       } else {
-        toast.success(t("on-success"));
+        toast.success(t("message.on-success"));
       }
     },
     onError: (error) => {
       if (onError) {
         onError(error);
       } else {
-        toast.error(t("on-error"));
+        toast.error(
+          getApiErrorMessage(error as AxiosError<IApiResError>, t),
+        );
       }
     },
   });

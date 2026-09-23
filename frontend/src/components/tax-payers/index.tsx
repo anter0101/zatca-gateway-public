@@ -19,32 +19,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGetSystemOwners } from "@/hooks/system-owners/get-all";
 import { useGetTaxPayers } from "@/hooks/tax-payers/get-all";
 import { useFilters } from "@/hooks/use-filters";
+import { useGetVendors } from "@/hooks/vendors/get-all";
 import type { ModalState } from "@/types/modal";
 import type { TaxPayer, TaxPayerStatusFilter } from "@/types/tax-payer";
 import { taxPayerStatusOptions } from "@/types/tax-payer";
 
-const PAGE_SIZE = 5;
-
 export default function TaxPayers() {
   const t = useTranslations("tax-payers");
-  const { data: owners = [], isPending: isOwnersPending } =
-    useGetSystemOwners();
-  const [selectedOwnerId, setSelectedOwnerId] = useState<number | undefined>();
-  const { data: payers = [], isPending } = useGetTaxPayers(selectedOwnerId);
+  const { data: vendors = [], isPending: isVendorsPending } = useGetVendors({
+    page: 1,
+    pageSize: 100,
+  });
+  const [selectedVendorId, setSelectedVendorId] = useState<
+    number | undefined
+  >();
   const [openModal, setOpenModal] = useState<ModalState<TaxPayer>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<TaxPayerStatusFilter>("all");
 
-  const filters = useMemo(() => {
-    if (selectedStatus === "all") {
-      return [];
-    }
-    return [(payer: TaxPayer) => payer.status === selectedStatus];
-  }, [selectedStatus]);
+  const hasVendor = typeof selectedVendorId === "number";
+
+  const { data: payers = [], isPending } = useGetTaxPayers({
+    vendorId: selectedVendorId ?? 0,
+    page: 1,
+    pageSize: 100,
+    enabled: hasVendor,
+  });
+
+  const filters = useMemo(
+    () => [
+      (payer: TaxPayer) =>
+        selectedStatus === "all" || payer.status === selectedStatus,
+    ],
+    [selectedStatus],
+  );
 
   const {
     currentPage,
@@ -53,8 +64,8 @@ export default function TaxPayers() {
     setCurrentPage,
     resetPage,
   } = useFilters<TaxPayer>({
-    data: payers,
-    pageSize: PAGE_SIZE,
+    data: hasVendor ? payers : [],
+    pageSize: 5,
     filters,
     searchValue,
     searchFn: (payer, search) =>
@@ -63,8 +74,8 @@ export default function TaxPayers() {
       payer.organizationUnitName.toLowerCase().includes(search),
   });
 
-  const handleOwnerChange = (value: string) => {
-    setSelectedOwnerId(Number(value));
+  const handleVendorChange = (value: string) => {
+    setSelectedVendorId(Number(value));
     setSearchValue("");
     setSelectedStatus("all");
     setOpenModal(null);
@@ -80,8 +91,6 @@ export default function TaxPayers() {
     setSelectedStatus(value);
     resetPage();
   };
-
-  const hasOwner = typeof selectedOwnerId === "number";
 
   return (
     <main className="w-full px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
@@ -99,7 +108,7 @@ export default function TaxPayers() {
           <Button
             type="button"
             className="h-10 w-full sm:w-auto"
-            disabled={!hasOwner}
+            disabled={!hasVendor}
             onClick={() => setOpenModal({ type: "create" })}
           >
             <UserPlus className="size-4" />
@@ -110,20 +119,22 @@ export default function TaxPayers() {
         <section className="border-border bg-background flex w-full flex-col gap-3 rounded-2xl border p-3 sm:p-4">
           <Select
             value={
-              selectedOwnerId !== undefined ? String(selectedOwnerId) : undefined
+              selectedVendorId !== undefined
+                ? String(selectedVendorId)
+                : undefined
             }
-            onValueChange={handleOwnerChange}
-            disabled={isOwnersPending}
+            onValueChange={handleVendorChange}
+            disabled={isVendorsPending}
           >
             <SelectTrigger className="w-full lg:w-1/3">
-              <SelectValue placeholder={t("select-owner")} />
+              <SelectValue placeholder={t("select-vendor")} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>{t("select-owner")}</SelectLabel>
-                {owners.map((owner) => (
-                  <SelectItem key={owner.id} value={String(owner.id)}>
-                    {owner.name}
+                <SelectLabel>{t("select-vendor")}</SelectLabel>
+                {vendors.map((vendor) => (
+                  <SelectItem key={vendor.id} value={String(vendor.id)}>
+                    {vendor.name}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -138,7 +149,7 @@ export default function TaxPayers() {
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t("search-placeholder")}
                 className="h-9 pl-10"
-                disabled={!hasOwner}
+                disabled={!hasVendor}
               />
             </div>
 
@@ -147,7 +158,7 @@ export default function TaxPayers() {
               onValueChange={(value) =>
                 handleStatusChange(value as TaxPayerStatusFilter)
               }
-              disabled={!hasOwner}
+              disabled={!hasVendor}
             >
               <SelectTrigger className="w-full lg:w-1/4">
                 <SelectValue placeholder={t("filter-status")} />
@@ -167,22 +178,22 @@ export default function TaxPayers() {
         </section>
 
         <TaxPayersTable
-          data={hasOwner ? paginatedData : []}
-          totalCount={hasOwner ? filteredData.length : 0}
-          pageSize={PAGE_SIZE}
+          data={hasVendor ? paginatedData : []}
+          totalCount={hasVendor ? filteredData.length : 0}
+          pageSize={5}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
-          isLoading={hasOwner && isPending}
+          isLoading={hasVendor && isPending}
           emptyMessage={
-            hasOwner ? t("table.empty") : t("table.select-owner-first")
+            hasVendor ? t("table.empty") : t("table.select-vendor-first")
           }
           onEdit={(payer) => setOpenModal({ type: "edit", entity: payer })}
           onDelete={(payer) => setOpenModal({ type: "delete", entity: payer })}
         />
 
-        {hasOwner && openModal?.type === "create" && (
+        {hasVendor && openModal?.type === "create" && (
           <CreateTaxPayerForm
-            vendorId={selectedOwnerId}
+            vendorId={selectedVendorId}
             openForm={openModal.type === "create"}
             setOpenForm={() => setOpenModal(null)}
           />

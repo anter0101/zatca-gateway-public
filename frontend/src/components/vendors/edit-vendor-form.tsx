@@ -2,22 +2,22 @@
 
 import { useTranslations } from "next-intl";
 
-import SystemOwnerForm from "@/components/system-owners/system-owner-form";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import type { SystemOwner } from "@/types/system-owner";
+import VendorForm from "@/components/vendors/vendor-form";
+import type { Vendor } from "@/types/vendor";
 
 type Props = {
   openForm: boolean;
   setOpenForm: (open: boolean) => void;
-  owner: SystemOwner;
+  vendor: Vendor;
 };
 
-export default function EditSystemOwnerForm({
+export default function EditVendorForm({
   openForm,
   setOpenForm,
-  owner,
+  vendor,
 }: Props) {
-  const t = useTranslations("system-owners.form");
+  const t = useTranslations("vendors.form");
 
   return (
     <Dialog
@@ -33,9 +33,9 @@ export default function EditSystemOwnerForm({
         className="max-w-[calc(100%-2rem)] border-none bg-transparent p-0 shadow-none sm:max-w-md"
       >
         <DialogTitle className="sr-only">{t("edit-title")}</DialogTitle>
-        <SystemOwnerForm
+        <VendorForm
           mode="edit"
-          owner={owner}
+          vendor={vendor}
           onClose={() => setOpenForm(false)}
         />
       </DialogContent>

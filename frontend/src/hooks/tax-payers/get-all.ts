@@ -1,19 +1,37 @@
-import { useQuery } from "@tanstack/react-query";
+import { useGetPaginated } from "@/hooks/base/get-paginated";
+import type { TaxPayer } from "@/types/tax-payer";
 
-import { listTaxPayers } from "@/mockup-data/tax-payers";
+export const taxPayersQueryKey = (vendorId: number) => [
+  "vendors",
+  String(vendorId),
+  "tax-payers",
+];
 
-export const taxPayersQueryKey = (vendorId?: number) =>
-  ["tax-payers", vendorId] as const;
+type UseGetTaxPayersOptions = {
+  vendorId: number;
+  page: number;
+  pageSize: number;
+  enabled?: boolean;
+};
 
-export function useGetTaxPayers(vendorId?: number) {
-  const { data, isPending } = useQuery({
+export function useGetTaxPayers({
+  vendorId,
+  page,
+  pageSize,
+  enabled = true,
+}: UseGetTaxPayersOptions) {
+  const query = useGetPaginated<TaxPayer>({
+    endPoint: `/api/vendors/${vendorId}/tax-payers`,
     queryKey: taxPayersQueryKey(vendorId),
-    queryFn: () => listTaxPayers(vendorId!),
-    enabled: typeof vendorId === "number",
+    params: { page, pageSize },
+    enabled,
   });
 
   return {
-    data: data ?? [],
-    isPending: typeof vendorId === "number" ? isPending : false,
+    data: query.data?.data ?? [],
+    totalCount: query.data?.totalCount ?? 0,
+    isPending: query.isPending,
+    isFetching: query.isFetching,
+    refetch: query.refetch,
   };
 }

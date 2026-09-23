@@ -1,8 +1,8 @@
 {
   "title": "Tax payers",
-  "description": "Manage tax payer identity under a selected system owner.",
+  "description": "Manage tax payer identity under a selected vendor.",
   "add-new": "Add tax payer",
-  "select-owner": "Select system owner",
+  "select-vendor": "Select vendor",
   "search-placeholder": "Search by name, VAT, or branch...",
   "filter-status": "Status",
   "status-filter": {
@@ -18,8 +18,8 @@
   },
   "table": {
     "count": "{count} tax payers",
-    "empty": "No tax payers found for this owner.",
-    "select-owner-first": "Select a system owner to view tax payers.",
+    "empty": "No tax payers found for this vendor.",
+    "select-vendor-first": "Select a vendor to view tax payers.",
     "columns": {
       "legal-name": "Legal name",
       "vat": "VAT number",
@@ -43,7 +43,7 @@
     "edit-title": "Edit tax payer",
     "legal-name": "Legal name",
     "vat-number": "VAT number",
-    "vat-placeholder": "15 digits starting and ending with 3",
+    "vat-placeholder": "e.g. 399999999900003",
     "organization-unit": "Organization unit / branch",
     "location-address": "Location address (Wasel)",
     "location-placeholder": "e.g. RRRD2929",
@@ -56,13 +56,36 @@
       "simplified": "Simplified"
     },
     "status": "Status",
-    "select-status": "Select status",
     "status-draft": "Draft",
     "status-onboarded": "Onboarded",
     "status-suspended": "Suspended",
+    "country": "Country",
+    "zatca-environment": "ZATCA environment",
+    "zatca-environment-options": {
+      "simulation": "Simulation",
+      "developer_portal": "Developer portal",
+      "production": "Production"
+    },
+    "seller-address-section": "Seller address",
+    "street-name": "Street name",
+    "building-number": "Building number",
+    "district": "District",
+    "city": "City",
+    "postal-zone": "Postal zone",
+    "seller-id-scheme": "Seller ID scheme",
+    "select-seller-id-scheme": "Select scheme",
+    "seller-id-scheme-options": {
+      "CRN": "CRN — Commercial Registration",
+      "MOM": "MOM",
+      "MLS": "MLS",
+      "SAG": "SAG",
+      "OTH": "OTH — Other",
+      "700": "700"
+    },
+    "seller-id-value": "Seller ID value",
     "cancel": "Cancel",
     "validation": {
-      "vat-invalid": "VAT must be 15 digits starting and ending with 3",
+      "vat-invalid": "VAT must be 15 digits starting and ending with 3, with the 11th digit 0",
       "legal-name-required": "Legal name is required",
       "organization-unit-required": "Organization unit is required",
       "location-address-invalid": "Location must be 4 letters + 4 digits (e.g. RRRD2929)",

@@ -3,20 +3,24 @@ import qs from "qs";
 
 const timeout = 1000 * 60;
 
+/** Browser → nginx public URL; server (NextAuth authorize) → internal Nest URL. */
+const baseURL =
+  typeof window === "undefined"
+    ? process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL
+    : process.env.NEXT_PUBLIC_BACKEND_URL;
+
 const client = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
+  baseURL,
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json; charset=UTF-8",
     "ngrok-skip-browser-warning": "true",
-    // "X-TENANT-ID": "dms",
   },
   paramsSerializer: (params) =>
     qs.stringify(params, {
-      arrayFormat: "repeat", // 👈 KEY PART
-      skipNulls: true, // remove null/undefined
+      arrayFormat: "repeat",
+      skipNulls: true,
     }),
-
   timeout,
 });
 
