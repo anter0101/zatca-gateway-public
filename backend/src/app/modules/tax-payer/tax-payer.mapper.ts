@@ -6,6 +6,7 @@ import { UpdateTaxPayerDTO } from './dtos/update-tax-payer.dto';
 import { BaseDTO } from 'src/core/utils/base.dto';
 import { TaxPayerInvoiceType } from 'src/core/enums/tax-payer-invoice-type';
 import { TaxPayerStatus } from 'src/core/enums/tax-payer-status';
+import { ZatcaEnvironment } from 'src/core/enums/zatca-environment';
 
 const allowedTaxPayerDtoKeys: ReadonlyArray<keyof TaxPayerDTO | keyof BaseDTO> =
   [
@@ -69,9 +70,13 @@ export function mapTaxPayerToDtoSelective(
 export const mapCreateTaxPayerDtoToEntity = (
   dto: CreateTaxPayerDTO,
   vendorId: number,
+  zatcaEnvironment?: ZatcaEnvironment | null,
 ): TaxPayer => {
   const taxPayer = new TaxPayer();
   taxPayer.vendorId = vendorId;
+  if (zatcaEnvironment) {
+    taxPayer.zatcaEnvironment = zatcaEnvironment;
+  }
   taxPayer.vatNumber = dto.vatNumber;
   taxPayer.legalName = dto.legalName.trim();
   taxPayer.organizationUnitName = dto.organizationUnitName.trim();
