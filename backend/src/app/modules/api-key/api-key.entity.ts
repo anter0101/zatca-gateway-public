@@ -13,6 +13,9 @@ export class ApiKey extends BaseEntity {
   @Column({ name: 'vendor_id', type: 'int4', nullable: false })
   vendorId!: number;
 
+  @Column({ name: 'tax_payer_id', type: 'int4', nullable: true })
+  taxPayerId?: number | null;
+
   @ManyToOne(() => SoftwareVendor, (vendor) => vendor.apiKeys)
   @JoinColumn({ name: 'vendor_id' })
   vendor?: SoftwareVendor;

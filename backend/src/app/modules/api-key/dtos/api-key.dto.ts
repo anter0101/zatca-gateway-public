@@ -17,6 +17,14 @@ export class ApiKeyDTO extends BaseDTO {
   prefix: ApiKeyPrefix;
 
   @ApiPropertyOptional({
+    description:
+      'Bind the key to one tax payer. Invoice calls require this. The key can only see that tax payer.',
+  })
+  @IsOptional()
+  @IsInt()
+  taxPayerId?: number;
+
+  @ApiPropertyOptional({
     description: 'Absolute expiry (ISO). Required if expiresInDays omitted.',
   })
   @ValidateIf((o: ApiKeyDTO) => o.expiresInDays == null && o.id == null)

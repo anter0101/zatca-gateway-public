@@ -7,12 +7,14 @@ import { ApiErrorException } from 'src/core/filters/api-exception.filter';
 import {
   generatePlaintext,
   hashKey,
+  prefixToEnvironment,
   scopeMatches,
 } from 'src/core/security/api-key-util';
 import { VendorService } from 'src/app/modules/vendor/vendor.service';
 import { ZatcaEnvironment } from 'src/core/enums/zatca-environment';
 import { SoftwareVendor } from 'src/app/modules/vendor/software-vendor.entity';
 import { ApiKeyPrefix } from 'src/core/enums/api-key-prefix';
+import { TaxPayer } from 'src/app/modules/tax-payer/tax-payer.entity';
 
 export type VerifiedApiKeyContext = {
   apiKey: ApiKey;
@@ -24,6 +26,8 @@ export class ApiKeyService {
   constructor(
     @InjectRepository(ApiKey)
     private readonly apiKeyRepository: Repository<ApiKey>,
+    @InjectRepository(TaxPayer)
+    private readonly taxPayers: Repository<TaxPayer>,
     private readonly vendorService: VendorService,
   ) {}
 
@@ -57,12 +61,14 @@ export class ApiKeyService {
   ): Promise<{ entity: ApiKey; plaintext: string }> {
     await this.vendorService.findByIdOrFail(vendorId);
 
+    const taxPayerId = await this.resolveTaxPayer(vendorId, dto);
     const expiresAt = this.resolveExpiresAt(dto);
     const { key, last4 } = generatePlaintext(dto.prefix);
     const keyHash = hashKey(key);
 
     const entity = this.apiKeyRepository.create({
       vendorId,
+      taxPayerId,
       prefix: dto.prefix,
       keyHash,
       last4,
@@ -170,6 +176,38 @@ export class ApiKeyService {
     await this.apiKeyRepository.update(apiKeyId, {
       lastUsedAt: new Date(),
     });
+  }
+
+  private async resolveTaxPayer(
+    vendorId: number,
+    dto: CreateApiKeyDTO,
+  ): Promise<number | null> {
+    if (dto.taxPayerId == null) {
+      return null;
+    }
+    const taxPayer = await this.taxPayers.findOne({
+      where: { id: dto.taxPayerId, vendorId },
+    });
+    if (!taxPayer) {
+      throw new ApiErrorException(
+        HttpStatus.NOT_FOUND,
+        'not_found',
+        'tax_payer_not_found',
+        'Tax payer not found for this vendor',
+      );
+    }
+    if (
+      taxPayer.zatcaEnvironment &&
+      prefixToEnvironment(dto.prefix) !== taxPayer.zatcaEnvironment
+    ) {
+      throw new ApiErrorException(
+        HttpStatus.BAD_REQUEST,
+        'invalid_request',
+        'api_key_taxpayer_environment',
+        'API key prefix must match the tax payer ZATCA environment',
+      );
+    }
+    return taxPayer.id;
   }
 
   private resolveExpiresAt(dto: {

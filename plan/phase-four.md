@@ -6,11 +6,21 @@
 
 Build UBL 2.1 by **stamping** vendor JSON onto SDK sample XMLs (fixture-driven). Vendor sends **business data**; gateway sets seller/ICV/PIH/totals, sidecar signs + SDK `-validate`, then Fatoora through the same **ZatcaClient** as onboard (bases from Phase 3 `.env`). Contracts: [sdk/fatoora-swagger/](../sdk/fatoora-swagger/).
 
+**Reference (all three, for every case this phase supports):**
+
+| Source | What it decides |
+| --- | --- |
+| SDK samples under [`sdk/Data/Samples/`](../sdk/Data/Samples/) | XML shape and element order, including zero-rated, exempt, allowance, and document-level charge samples |
+| ZATCA e-invoice data dictionary sheet | Field cardinality: **M** / **O** / **C** / **NA** per document type (388 / 381 / 383, standard vs simplified) |
+| Validation rules | XSD plus [`CEN-EN16931-UBL.xsl`](../sdk/Data/Rules/Schematrons/CEN-EN16931-UBL.xsl) and [`20210819_ZATCA_E-invoice_Validation_Rules.xsl`](../sdk/Data/Rules/Schematrons/20210819_ZATCA_E-invoice_Validation_Rules.xsl), run by sidecar `-validate` |
+
+An invoice is done only when the stamped XML matches the sample for that case, every dictionary-mandatory field for that type is present, and `-validate` passes. Do not treat a sample-only stamp as success if a rule or a mandatory field is missing.
+
 ## This phase
 
 - Invoice table + `POST /v1/invoices` (worker + poll)
 - Fixture-driven generator for the **six** live document types (SDK samples as templates)
-- Discounts, VAT %, credit/debit (returns), standard vs simplified
+- Discounts, document-level charges, VAT %, credit/debit (returns), standard vs simplified
 - Fatoora clearance / reporting via `ZatcaClient.invoices` (`Clearance-Status` headers)
 - On reject: **do not** advance PIH; store signed + cleared XML when successful
 
@@ -103,6 +113,13 @@ Seller is **not** in the body — copied from the tax payer.
     "taxCategory": "S",
     "taxPercent": 15
   },
+  "documentCharge": {
+    "amount": 60.00,
+    "reasonCode": "LF",
+    "reason": "Legalisation fee",
+    "taxCategory": "S",
+    "taxPercent": 15
+  },
   "lines": [
     {
       "id": "1",
@@ -137,23 +154,30 @@ Credit/debit required:
 | Exempt | `E` | 0 | e.g. `VATEX-SA-29-7` |
 | Out of scope | `O` | 0 | `VATEX-SA-OOS` |
 
-`ChargeIndicator` for allowances is always `false` (BR-KSA-F-02).
+Document `AllowanceCharge` (optional, both may be present):
+
+| Field | `ChargeIndicator` | Effect on taxable amount |
+| --- | --- | --- |
+| `documentDiscount` | `false` (allowance, BR-KSA-F-02) | Subtract |
+| `documentCharge` | `true` | Add |
+
+`documentCharge` maps to the SDK document-level charge sample: `AllowanceChargeReasonCode` (for example `LF`), reason text, amount, and the charge's own tax category. Line discounts stay allowances (`ChargeIndicator` false) and are not charges.
 
 ---
 
 ## Generator (fixture-driven)
 
-Do **not** reinvent UBL from the dictionary spreadsheet. Stamp business data onto the six SDK sample structures under [`sdk/Data/Samples/`](../sdk/Data/Samples/).
+Stamp business data onto the SDK sample that matches the case. The dictionary sheet says which fields must be filled. `-validate` (XSD + both schematrons) is the pass/fail gate for every supported case: standard and simplified, invoice/credit/debit, `S` / `Z` / `E` / `O`, line allowance, document allowance, and document charge.
 
-1. Pick sample XML by subtype + type (standard/simplified × invoice/credit/debit)
-2. Stamp seller from tax payer, buyer/lines/dates/discounts from vendor JSON, ICV + PIH from locked tax payer row
-3. Gateway computes tax totals (group by category + percent); `PayableAmount` = inclusive − prepaid (v1 prepaid `0`); amounts 2 decimals; `ChargeIndicator` false for allowances
-4. Credit/debit: `BillingReference` + `InstructionNote` + `originalInvoiceId` (same tax payer)
-5. Output unsigned XML (no UBLExtensions / QR value) → sidecar `-sign` / `-validate` / `-invoiceRequest`
+1. Pick the sample by subtype + type, then by tax case when the base sample is not enough (zero-rated, exempt, out of scope, document-level charge).
+2. Stamp seller from the tax payer, buyer/lines/dates/discounts/charges from vendor JSON, ICV + PIH from the locked tax payer row. Fill every dictionary **M** field and every **C** field whose condition is true (exemption code + text on `Z` / `E` / `O`).
+3. Gateway computes tax totals (group by category + percent, including the charge's category). `PayableAmount` = line inclusive + document charges − document discounts − prepaid (v1 prepaid `0`); amounts 2 decimals. Discount `ChargeIndicator` false; charge `ChargeIndicator` true.
+4. Credit/debit: `BillingReference` + `InstructionNote` + `originalInvoiceId` (same tax payer). Dictionary marks `instructionNote` **M** on 381/383 and **NA** on 388.
+5. Output unsigned XML (no UBLExtensions / QR value) → sidecar `-sign` / `-validate` / `-invoiceRequest`. `-validate` must PASS before Fatoora.
 
-**When coding — fixture tests first:** golden unsigned XML per type → sidecar `-validate` PASS → then Fatoora. Local gate is SDK only (no Nest dictionary re-pass).
+**When coding — fixture tests first:** one golden unsigned XML per supported case (six document types, plus `Z` / `E` / `O`, line discount, document discount, document charge) → sidecar `-validate` PASS → then Fatoora.
 
-Stamp must keep: `ProfileID` `reporting:1.0`, UUID (KSA-1), ICV/PIH chain, type code + KSA-2 `@name`, seller VAT + address, UBL element order matching samples.
+Stamp must keep: `ProfileID` `reporting:1.0`, UUID (KSA-1), ICV/PIH chain, type code + KSA-2 `@name`, seller VAT + address, UBL element order matching the chosen sample.
 
 ---
 
@@ -219,7 +243,6 @@ Create `invoices` from [phase-one.md](phase-one.md) (including `idempotency_key`
 ## Out of scope
 
 - KSA-2 flags other than `01`/`02`
-- Document-level charges (`ChargeIndicator` true)
 - Invoice type `386` prepayment
 - Dashboard UI, webhooks (Phase 5)
 - RabbitMQ

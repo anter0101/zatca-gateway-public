@@ -7,6 +7,7 @@ import { BaseDTO } from 'src/core/utils/base.dto';
 const allowedApiKeyDtoKeys: ReadonlyArray<keyof ApiKeyDTO | keyof BaseDTO> = [
   'id',
   'prefix',
+  'taxPayerId',
   'expiresAt',
   'last4',
   'lastUsedAt',

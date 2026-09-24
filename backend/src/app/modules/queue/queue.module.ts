@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 
 export const ONBOARD_QUEUE = 'onboard';
+export const INVOICE_QUEUE = 'invoice';
 
 @Module({
   imports: [
@@ -24,7 +25,10 @@ export const ONBOARD_QUEUE = 'onboard';
         };
       },
     }),
-    BullModule.registerQueue({ name: ONBOARD_QUEUE }),
+    BullModule.registerQueue(
+      { name: ONBOARD_QUEUE },
+      { name: INVOICE_QUEUE },
+    ),
   ],
   exports: [BullModule],
 })

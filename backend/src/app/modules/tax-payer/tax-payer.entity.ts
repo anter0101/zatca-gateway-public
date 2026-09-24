@@ -124,6 +124,9 @@ export class TaxPayer extends BaseEntity {
   @Column({ type: 'bigint', default: 0, nullable: false })
   icv!: string;
 
+  @Column({ name: 'document_seq', type: 'bigint', default: 0, nullable: false })
+  documentSeq!: string;
+
   @Column({ name: 'last_pih', type: 'varchar', nullable: true })
   lastPih?: string | null;
 

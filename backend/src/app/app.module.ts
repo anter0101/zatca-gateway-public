@@ -10,6 +10,7 @@ import { QueueModule } from './modules/queue/queue.module';
 import { ZatcaModule } from './modules/zatca/zatca.module';
 import { SidecarModule } from './modules/sidecar/sidecar.module';
 import { OnboardModule } from './modules/onboard/onboard.module';
+import { InvoiceModule } from './modules/invoice/invoice.module';
 import PostgresTypeorm from 'src/config/db-config';
 
 @Module({
@@ -26,11 +27,12 @@ import PostgresTypeorm from 'src/config/db-config';
     UserModule,
     VendorModule,
     ApiKeyModule,
+    OnboardModule,
     TaxPayerModule,
     QueueModule,
     ZatcaModule,
     SidecarModule,
-    OnboardModule,
+    InvoiceModule,
   ],
   controllers: [],
   providers: [],

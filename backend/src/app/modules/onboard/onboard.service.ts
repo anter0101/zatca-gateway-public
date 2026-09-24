@@ -73,6 +73,14 @@ export class OnboardService {
         );
       }
     }
+    if (opts.apiKey?.taxPayerId && opts.apiKey.taxPayerId !== taxPayer.id) {
+      throw new ApiErrorException(
+        HttpStatus.NOT_FOUND,
+        'not_found',
+        'tax_payer_not_found',
+        'Tax payer not found',
+      );
+    }
 
     return taxPayer;
   }
@@ -110,6 +118,14 @@ export class OnboardService {
           'authorization_error',
           'forbidden',
           'API key does not belong to this tax payer vendor',
+        );
+      }
+      if (access.apiKey?.taxPayerId && access.apiKey.taxPayerId !== locked.id) {
+        throw new ApiErrorException(
+          HttpStatus.NOT_FOUND,
+          'not_found',
+          'tax_payer_not_found',
+          'Tax payer not found',
         );
       }
 
@@ -183,6 +199,7 @@ export class OnboardService {
     taxPayerId: number,
     access: {
       vendor?: SoftwareVendor | null;
+      apiKey?: ApiKey | null;
       userRole?: UserRole | string | null;
     },
   ): Promise<OnboardProgressDTO> {

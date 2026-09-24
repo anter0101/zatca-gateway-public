@@ -25,6 +25,7 @@ import {
 } from '@nestjs/swagger';
 import {
   ApiKeyOrJwtGuard,
+  RequestApiKey,
   RequestVendor,
   RequestZatcaEnv,
 } from 'src/core/security';
@@ -43,7 +44,15 @@ import {
   mapTaxPayerToDtoSelective,
   mapUpdateTaxPayerDtoToEntity,
 } from './tax-payer.mapper';
-import { requireApiKeyVendor } from './require-api-key-vendor';
+import { ApiKey } from 'src/app/modules/api-key/api-key.entity';
+import { ApiKeyService } from 'src/app/modules/api-key/api-key.service';
+import { CreateApiKeyDTO } from 'src/app/modules/api-key/dtos/create-api-key.dto';
+import { ApiKeyDTO } from 'src/app/modules/api-key/dtos/api-key.dto';
+import { mapApiKeyToDtoSelective } from 'src/app/modules/api-key/api-key.mapper';
+import {
+  requireApiKeyVendor,
+  requireVendorWideKey,
+} from './require-api-key-vendor';
 
 @Controller('v1/taxpayers')
 @ApiBearerAuth('bearer')
@@ -53,7 +62,10 @@ import { requireApiKeyVendor } from './require-api-key-vendor';
 export class VendorTaxPayerController {
   logger = new Logger('VendorTaxPayerController');
 
-  constructor(private readonly taxPayerService: TaxPayerService) {}
+  constructor(
+    private readonly taxPayerService: TaxPayerService,
+    private readonly apiKeyService: ApiKeyService,
+  ) {}
 
   @Get('/')
   @ApiOperation({
@@ -89,6 +101,51 @@ export class VendorTaxPayerController {
     );
 
     return mapTaxPayerToDtoSelective(results);
+  }
+
+  @Get('/:id/api-keys')
+  @ApiOperation({ summary: 'List API keys issued for this tax payer' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200, type: ApiKeyDTO, isArray: true })
+  async listKeys(
+    @RequestVendor() vendor: SoftwareVendor | null,
+    @RequestApiKey() apiKey: ApiKey | null,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Partial<ApiKeyDTO>[]> {
+    const owner = requireApiKeyVendor(vendor);
+    requireVendorWideKey(apiKey);
+    await this.taxPayerService.findOneOrFail(owner.id, id);
+    const [results] = await this.apiKeyService.findAndCount(owner.id, {
+      where: { taxPayerId: id },
+      order: { id: 'DESC' },
+    });
+    return mapApiKeyToDtoSelective(results);
+  }
+
+  @Post('/:id/api-keys')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Generate an API key for this tax payer (plaintext shown once)',
+  })
+  @ApiParam({ name: 'id' })
+  @ApiBody({ type: CreateApiKeyDTO })
+  @ApiResponse({ status: 201, type: ApiKeyDTO })
+  async createKey(
+    @RequestVendor() vendor: SoftwareVendor | null,
+    @RequestApiKey() apiKey: ApiKey | null,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateApiKeyDTO,
+  ): Promise<Partial<ApiKeyDTO>> {
+    const owner = requireApiKeyVendor(vendor);
+    requireVendorWideKey(apiKey);
+    await this.taxPayerService.findOneOrFail(owner.id, id);
+    const { entity, plaintext } = await this.apiKeyService.save(owner.id, {
+      ...body,
+      taxPayerId: id,
+    });
+    const dto = mapApiKeyToDtoSelective(entity);
+    dto.key = plaintext;
+    return dto;
   }
 
   @Get('/:id')
