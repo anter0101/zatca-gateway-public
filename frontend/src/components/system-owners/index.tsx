@@ -39,7 +39,9 @@ export default function SystemOwners() {
     useState<SystemOwnerStatusFilter>("all");
 
   const filters = useMemo(() => {
-    if (selectedStatus === "all") return [];
+    if (selectedStatus === "all") {
+      return [];
+    }
     return [(owner: SystemOwner) => owner.status === selectedStatus];
   }, [selectedStatus]);
 

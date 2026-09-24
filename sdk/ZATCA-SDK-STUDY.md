@@ -77,7 +77,7 @@ Main class (from typical ZATCA builds): `com.zatca.sdk.MainApp`.
 Prerequisites: **Java 11–14** and **jq**.
 
 ```bash
-cd /Users/kholoudnafea/Downloads/zatca-einvoicing-sdk-Java-238-R3.4.8
+cd /path/to/zatca-einvoicing-sdk-Java-238-R3.4.8
 sh install.sh
 source ~/.zshrc
 chmod +x Apps/fatoora

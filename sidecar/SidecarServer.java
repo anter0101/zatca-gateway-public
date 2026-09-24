@@ -33,11 +33,12 @@ public final class SidecarServer {
   private static Semaphore concurrency;
 
   public static void main(String[] args) throws Exception {
-    sdkHome = Paths.get(env("FATOORA_HOME", "/opt/zatca-sdk")).toAbsolutePath().normalize();
+    sdkHome = resolveSdkHome();
     Path apps = sdkHome.resolve("Apps");
-    Path versionFile = Files.exists(apps.resolve("global.json"))
-        ? apps.resolve("global.json")
-        : sdkHome.resolve("global.json");
+    Path versionFile = firstExisting(apps.resolve("global.json"), sdkHome.resolve("global.json"));
+    if (versionFile == null) {
+      throw new IOException("SDK global.json not found under " + sdkHome);
+    }
     sdkVersion = readVersion(versionFile);
     jarPath = resolveJar(apps, sdkHome, sdkVersion);
 
@@ -351,27 +352,22 @@ public final class SidecarServer {
 
   private static Path writeConfig(Path sandbox) throws IOException {
     Path xsd =
-        sdkHome
-            .resolve("Data")
-            .resolve("Schemas")
-            .resolve("xsds")
-            .resolve("UBL2.1")
-            .resolve("xsd")
-            .resolve("maindoc")
-            .resolve("UBL-Invoice-2.1.xsd");
-    Path en =
-        sdkHome
-            .resolve("Data")
-            .resolve("Rules")
-            .resolve("Schematrons")
-            .resolve("CEN-EN16931-UBL.xsl");
+        sdkFile(
+            "Data",
+            "Schemas",
+            "xsds",
+            "UBL2.1",
+            "xsd",
+            "maindoc",
+            "UBL-Invoice-2.1.xsd");
+    Path en = sdkFile("Data", "Rules", "Schematrons", "CEN-EN16931-UBL.xsl");
     Path zatca =
-        sdkHome
-            .resolve("Data")
-            .resolve("Rules")
-            .resolve("Schematrons")
-            .resolve("20210819_ZATCA_E-invoice_Validation_Rules.xsl");
-    Path usage = sdkHome.resolve("Configuration").resolve("usage.txt");
+        sdkFile(
+            "Data",
+            "Rules",
+            "Schematrons",
+            "20210819_ZATCA_E-invoice_Validation_Rules.xsl");
+    Path usage = sdkFile("Configuration", "usage.txt");
 
     String json =
         "{\n"
@@ -465,6 +461,88 @@ public final class SidecarServer {
     } catch (Exception ignored) {
       // best-effort wipe
     }
+  }
+
+  /**
+   * Locate the SDK tree on any machine. Accepts SDK root or {@code Apps/} (what
+   * {@code install.sh} exports as {@code FATOORA_HOME}). Skips a path that does
+   * not exist here (Compose must not inherit a laptop Downloads path).
+   */
+  private static Path resolveSdkHome() throws IOException {
+    List<Path> candidates = new ArrayList<>();
+    String sidecarHome = System.getenv("SIDECAR_SDK_HOME");
+    if (sidecarHome != null && !sidecarHome.trim().isEmpty()) {
+      candidates.add(Paths.get(sidecarHome.trim()));
+    }
+    String fatooraHome = System.getenv("FATOORA_HOME");
+    if (fatooraHome != null && !fatooraHome.trim().isEmpty()) {
+      candidates.add(Paths.get(fatooraHome.trim()));
+    }
+    candidates.add(Paths.get("/opt/zatca-sdk"));
+    candidates.add(Paths.get("sdk"));
+    candidates.add(Paths.get("..").resolve("sdk"));
+
+    for (Path raw : candidates) {
+      Path home = normalizeSdkRoot(raw);
+      if (home != null) {
+        return home;
+      }
+    }
+    throw new IOException(
+        "Cannot locate Fatoora SDK. Set SIDECAR_SDK_HOME or FATOORA_HOME to the SDK root (folder that contains Apps/ and Data/).");
+  }
+
+  private static Path normalizeSdkRoot(Path raw) {
+    if (raw == null) {
+      return null;
+    }
+    Path p = raw.toAbsolutePath().normalize();
+    if (!Files.isDirectory(p)) {
+      return null;
+    }
+    if (isSdkRoot(p)) {
+      return p;
+    }
+    Path parent = p.getParent();
+    if (isSdkRoot(parent)) {
+      return parent;
+    }
+    return null;
+  }
+
+  private static boolean isSdkRoot(Path p) {
+    if (p == null || !Files.isDirectory(p)) {
+      return false;
+    }
+    return Files.exists(p.resolve("Apps").resolve("global.json"))
+        || (Files.exists(p.resolve("global.json")) && Files.isDirectory(p.resolve("Data")));
+  }
+
+  private static Path firstExisting(Path... paths) {
+    for (Path p : paths) {
+      if (p != null && Files.exists(p)) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  private static Path sdkFile(String... parts) throws IOException {
+    Path primary = sdkHome;
+    for (String part : parts) {
+      primary = primary.resolve(part);
+    }
+    if (Files.exists(primary)) {
+      return primary;
+    }
+    Path alt = sdkHome;
+    for (String part : parts) {
+      alt = alt.resolve("Schematrons".equals(part) ? "schematrons" : part);
+    }
+    if (Files.exists(alt)) {
+      return alt;
+    }
+    throw new IOException("SDK file not found: " + primary);
   }
 
   private static Path resolveJar(Path apps, Path home, String version) throws IOException {
